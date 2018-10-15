@@ -1,4 +1,4 @@
-(defpackage :sdl2-extensions
+(defpackage :bricabrac.sdl2
   (:use :cl :sdl2 :autowrap :alexandria)
   (:export
 

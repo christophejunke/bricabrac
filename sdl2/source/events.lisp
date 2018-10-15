@@ -1,4 +1,4 @@
-(in-package :sdl2-extensions)
+(in-package :bricabrac.sdl2)
 
 (defun windowevent (code)
   "Return the keyword corresponding to a windowevent code"
@@ -193,13 +193,18 @@ padding fields and the type tag"
               (setf (get ',name 'event-type) (cons :windowevent ,windowevent)))))))
 
 (defmacro event-type-case ((event event-type) &body clauses)
-  (let ((windowevents nil))
+  (let ((windowevents nil)
+        (catch-all nil))
     (flet
         ((clause (form)
            (assert (consp form) () "A clause should be a non-empty list")
            (typecase (car form)
+             ((member T OTHERWISE)
+              (setf catch-all form))
              (keyword form)
              (symbol
+              (when catch-all
+                (error "Dead code due to default case (~a)" catch-all))
               (destructuring-bind (with (ev . args) . rest) form
                 (flet ((case-form (test)
                          `(,test
@@ -223,6 +228,8 @@ padding fields and the type tag"
       (let ((clauses (remove nil (mapcar #'clause clauses))))
         (when (and windowevents (find :windowevent clauses :key #'car))
           (error "Ambiguous :windowevent clauses"))
+        (when catch-all
+          (setf clauses (butlast clauses)))
         `(case ,event-type
            ,@clauses
            ,@(and windowevents
@@ -230,4 +237,5 @@ padding fields and the type tag"
                 `((:windowevent
                    (with-raw-window-event (,event :event ,code)
                      (case (windowevent ,code)
-                       ,@(reverse windowevents))))))))))))
+                       ,@(reverse windowevents)))))))
+           ,@(and catch-all (list catch-all)))))))

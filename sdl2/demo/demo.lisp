@@ -1,12 +1,12 @@
-(defpackage :sdl2-extensions.demo
+(defpackage :bricabrac.sdl2.demo
   (:use
-   :sdl2-extensions
+   :bricabrac.sdl2
    :sdl2
    :cl
-   :sdl2-extensions.demo.time)
+   :bricabrac.sdl2.demo.time)
   (:export #:demo))
 
-(in-package :sdl2-extensions.demo)
+(in-package :bricabrac.sdl2.demo)
 
 (defclass demo ()
   ((timer/spin :initform (make-periodic-timer 3000)
@@ -298,13 +298,14 @@
   (dispatch *demo*))
 
 #+additional-demo
+;; WHile (demo) is executing, change the grid size
 (progn
 
   ;; redefine as returning NIL to stop animation
   (defun run () t)
 
   ;; in its own thread (e.g. slime-eval)
-  (let ((timer (make-timer :period 1000)))
+  (let ((timer (make-periodic-timer 1000)))
     (loop
       while (run)
       for value = (timestep timer 20)

@@ -1,4 +1,4 @@
-(defpackage :sdl2-extensions.demo.time
+(defpackage :bricabrac.sdl2.demo.time
   (:use :cl)
   (:export #:make-timer
            #:make-periodic-timer
@@ -9,7 +9,7 @@
            #:timer-enabled
            #:timer-period))
 
-(in-package :sdl2-extensions.demo.time)
+(in-package :bricabrac.sdl2.demo.time)
 
 (defstruct (ability (:conc-name)) (enabled t))
 

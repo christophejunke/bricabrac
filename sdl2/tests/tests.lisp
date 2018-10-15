@@ -1,9 +1,9 @@
-(defpackage :sdl2-extensions.tests
-  (:use :cl :sdl2 :sdl2-extensions :alexandria)
+(defpackage :bricabrac.sdl2.tests
+  (:use :cl :sdl2 :bricabrac.sdl2 :alexandria)
   (:export #:single-loop
            #:dispatch))
 
-(in-package :sdl2-extensions.tests)
+(in-package :bricabrac.sdl2.tests)
 
 (defparameter *message*
   "NOTE: nothing is displayed in the window.
