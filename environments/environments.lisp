@@ -29,8 +29,7 @@ consecutive values will be combined in the order of appearance.
                          `(:transform ,(scale 3 3)
                            :transform ,(move 1 1)))
 
-   => (:TRANSFORM 
-        #S(GAME.FRAMEWORK.TRANSFORM::TRANSFORM :SX 3 :SY 3 :TX 3 :TY 3))
+   => (:TRANSFORM #S(TRANSFORM :SX 3 :SY 3 :TX 3 :TY 3))
 "
   (loop with env = (copy-seq old-env)
         for (attribute value) on new-env by #'cddr

@@ -57,8 +57,8 @@ CALLBACK is a function accepting:
   - PATH, a list of symbols of each node from current leaf to root, without
     NIL.
 
-  - ENV, a property list representing general-purpose bindings available in the
-    scope of the leaf node.
+  - zero or more keyword arguments, obtained by calling APPLY on the combined
+    ENV associated with each leaf.
 
 The return value of CALLBACK is not used.
 
