@@ -1,5 +1,5 @@
 (defpackage :bricabrac.sdl2.tests
-  (:use :cl :sdl2 :bricabrac.sdl2 :alexandria)
+  (:use :cl :sdl2 :bricabrac.sdl2.event-loop :alexandria)
   (:export #:single-loop
            #:dispatch))
 

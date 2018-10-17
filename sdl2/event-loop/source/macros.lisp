@@ -1,4 +1,4 @@
-(in-package :bricabrac.sdl2)
+(in-package :bricabrac.sdl2.event-loop)
 
 (defmacro with-captured-bindings ((rebinding-name &rest symbols) &body body)
   (assert (every #'symbolp symbols))

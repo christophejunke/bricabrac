@@ -1,4 +1,4 @@
-(defpackage :bricabrac.sdl2
+(defpackage :bricabrac.sdl2.event-loop
   (:use :cl :sdl2 :autowrap :alexandria)
   (:export
 

@@ -1,4 +1,4 @@
-(in-package :bricabrac.sdl2)
+(in-package :bricabrac.sdl2.event-loop)
 
 (define-event-macro with-controller-axis-motion-event :controlleraxismotion)
 (define-event-macro with-controller-button-down-event :controllerbuttondown)

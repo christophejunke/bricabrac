@@ -1,8 +1,8 @@
 (defpackage :bricabrac.sdl2.demo
   (:use
-   :bricabrac.sdl2
-   :sdl2
    :cl
+   :sdl2
+   :bricabrac.sdl2.event-loop
    :bricabrac.sdl2.demo.time)
   (:export #:demo))
 

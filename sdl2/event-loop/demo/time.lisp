@@ -28,6 +28,7 @@
 
 (defstruct (countdown
             (:include ability)
+            (:conc-name)
             (:constructor make-countdown (delay &aux (remaining delay))))
   (delay internal-time-units-per-second
    :type (integer 0))

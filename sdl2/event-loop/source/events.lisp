@@ -1,4 +1,4 @@
-(in-package :bricabrac.sdl2)
+(in-package :bricabrac.sdl2.event-loop)
 
 (defun windowevent (code)
   "Return the keyword corresponding to a windowevent code"
