@@ -34,14 +34,16 @@
 
 (defmacro define-windowevents-macro ()
   (flet ((make-form (keyword)
-           `(define-windowevent-macro
-                ,(symbolicate 'with-window-event-
-                              (subseq (string keyword)
-                                      #.(length (string :windowevent-))))
-                ,keyword)))
+           (let ((symbol (symbolicate
+                          'with-window-event-
+                          (subseq (string keyword)
+                                  #.(length (string :windowevent-))))))
+             `((define-windowevent-macro ,symbol ,keyword)
+               (export ',symbol)))))
     `(progn
-       ,@(map 'list
-              #'make-form
-              (bricabrac.sdl2.event-loop::sdl2-ffi-windowevents)))))
+       ,@(mapcan #'make-form
+                 (coerce
+                  (bricabrac.sdl2.event-loop::sdl2-ffi-windowevents)
+                  'list)))))
 
 (define-windowevents-macro)

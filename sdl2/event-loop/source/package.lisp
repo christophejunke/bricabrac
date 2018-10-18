@@ -42,17 +42,6 @@
    #:with-raw-window-event
    #:windowevent
 
-   #:with-window-event-shown
-   #:with-window-event-hidden
-   #:with-window-event-exposed
-   #:with-window-event-moved
-   #:with-window-event-resized
-   #:with-window-event-size-changed
-   #:with-window-event-minimized
-   #:with-window-event-maximized
-   #:with-window-event-restored
-   #:with-window-event-enter
-   #:with-window-event-leave
-   #:with-window-event-focus-gained
-   #:with-window-event-focus-lost
-   #:with-window-event-close))
+   ;; also export with-window-event-x symbols (see definitions.lisp)
+
+   ))
