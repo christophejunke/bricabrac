@@ -20,6 +20,11 @@
      (:file "indexer" :depends-on ("package"))
      (:file "property-trees" :depends-on ("environments"))))
 
+   (:module #:TIME
+    :pathname "time/"
+    :components
+    ((:file "internal-time")))
+
    (:module #:SDL2
     :pathname "sdl2/"
     :components
