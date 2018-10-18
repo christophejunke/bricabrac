@@ -9,11 +9,11 @@
 (in-package :bricabrac.sdl2.demo)
 
 (defclass demo ()
-  ((timer/spin :initform (make-periodic-timer 3000)
+  ((timer/spin :initform (make-periodic-timer (seconds 3))
                :accessor timer/spin)
-   (timer/spin-world :initform (make-periodic-timer 5000)
+   (timer/spin-world :initform (make-periodic-timer (seconds 5))
                      :accessor timer/spin-world)
-   (timer/plan :initform (make-latch-timer :period 4000)
+   (timer/plan :initform (make-latch-timer :period (seconds 4))
                :accessor timer/plan)
    (smoothstep :initform (make-smoothstep 0.0 1.0)
                :accessor smoothstep)
@@ -289,8 +289,8 @@
   (with-raw-window-event (event :event code)
     (handle game (windowevent code) :event event :window window)))
 
-;;(setf (timer-period (timer *demo*)) 2000)
-;;(setf (timer-period (timer/plan *demo*)) 4000)
+;;(setf (timer-period (timer *demo*)) (seconds 2))
+;;(setf (timer-period (timer/plan *demo*)) (seconds 4))
 ;;(setf (smoothstep *demo*) (make-smoothstep 0.0 1))
 ;;(setf (grid *demo*) 200)
 
@@ -305,7 +305,7 @@
   (defun run () t)
 
   ;; in its own thread (e.g. slime-eval)
-  (let ((timer (make-periodic-timer 1000)))
+  (let ((timer (make-periodic-timer (seconds 1))))
     (loop
       while (run)
       for value = (timestep timer 20)

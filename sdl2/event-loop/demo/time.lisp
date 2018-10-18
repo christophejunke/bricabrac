@@ -1,6 +1,7 @@
 (defpackage :bricabrac.sdl2.demo.time
   (:use :cl)
-  (:export #:make-timer
+  (:export #:seconds
+           #:make-timer
            #:make-periodic-timer
            #:make-latch-timer
            #:make-dt-source
@@ -25,6 +26,9 @@
 (defmethod timestep ((timer timer) dt)  (incf sum dt))
 
 ;;;;
+
+(defun seconds (s)
+  (* s internal-time-units-per-second))
 
 (defstruct (countdown
             (:include ability)

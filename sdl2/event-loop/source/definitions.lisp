@@ -32,17 +32,16 @@
 
 (define-event-macro with-raw-window-event :windowevent)
 
-(define-windowevent-macro with-window-event-shown :windowevent-shown)
-(define-windowevent-macro with-window-event-hidden :windowevent-hidden)
-(define-windowevent-macro with-window-event-exposed :windowevent-exposed)
-(define-windowevent-macro with-window-event-moved :windowevent-moved)
-(define-windowevent-macro with-window-event-resized :windowevent-resized)
-(define-windowevent-macro with-window-event-size-changed :windowevent-size-changed)
-(define-windowevent-macro with-window-event-minimized :windowevent-minimized)
-(define-windowevent-macro with-window-event-maximized :windowevent-maximized)
-(define-windowevent-macro with-window-event-restored :windowevent-restored)
-(define-windowevent-macro with-window-event-enter :windowevent-enter)
-(define-windowevent-macro with-window-event-leave :windowevent-leave)
-(define-windowevent-macro with-window-event-focus-gained :windowevent-focus-gained)
-(define-windowevent-macro with-window-event-focus-lost :windowevent-focus-lost)
-(define-windowevent-macro with-window-event-close :windowevent-close)
+(defmacro define-windowevents-macro ()
+  (flet ((make-form (keyword)
+           `(define-windowevent-macro
+                ,(symbolicate 'with-window-event-
+                              (subseq (string keyword)
+                                      #.(length (string :windowevent-))))
+                ,keyword)))
+    `(progn
+       ,@(map 'list
+              #'make-form
+              (bricabrac.sdl2.event-loop::sdl2-ffi-windowevents)))))
+
+(define-windowevents-macro)

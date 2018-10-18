@@ -1,4 +1,4 @@
-(defsystem #:bricabrac
+(defsystem :bricabrac
   :depends-on (#:sdl2 #:alexandria)
   :serial t
   :components
@@ -8,9 +8,9 @@
     :components
     ((:file "mixins")))
 
-   (:module #:DEBUG
-    :pathname "debug/"
-    :components ((:file "debug")))
+   ;; (:module #:DEBUG
+   ;;  :pathname "debug/"
+   ;;  :components ((:file "debug")))
 
    (:module #:ENVIRONMENTS
     :pathname "environments/"
@@ -42,10 +42,11 @@
       :pathname "sprites/"
       :components ((:file "spritesheets")))))))
 
-(defsystem #:bricabrac/sdl2.event-loop.demo
+(defsystem :bricabrac/sdl2.event-loop.demo
   :depends-on (#:bricabrac #:cl-opengl)
   :components ((:module #:demo
                 :pathname "sdl2/event-loop/demo/"
                 :serial t
                 :components ((:file "time")
-                             (:file "demo")))))
+                             (:file "demo"))))
+  :perform (test-op (o c) (symbol-call :bricabrac.sdl2.demo :demo)))
