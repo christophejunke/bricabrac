@@ -1,4 +1,4 @@
-(in-package :bricabrac.environmenst)
+(in-package :bricabrac.environments)
 
 (defun make-indexer (&key (key #'identity) (test #'eql))
   "Create a numerical index for a set of values, without duplicates.

@@ -1,7 +1,24 @@
-(in-package :bricabrac.environmenst)
+(in-package :bricabrac.environments)
 
 ;; alist
 (defvar *cons-node-walkers* '())
+
+(declaim (ftype function map-property-leaves))
+
+(defvar *current-reducers* nil)
+
+(defmacro do-property-leaves (((path &rest lambda-list)
+                               tree &key result reducers) &body body)
+  (with-gensyms (env)
+    `(block nil
+       (map-property-leaves ,tree (lambda (,path &rest ,env)
+                                    ,@(if lambda-list
+                                          `((destructuring-bind ,lambda-list ,env
+                                              ,@body))
+                                          `((declare (ignore ,env))
+                                            ,@body)))
+                            :reducers (or ,reducers *current-reducers*))
+       (return ,result))))
 
 (defgeneric walk-meta-node-for-kind
     (kind &key path arguments children environment recurse))
@@ -16,18 +33,34 @@
        ;; processing children.
        ;;
        ;; (:each
-       ;;  (node1 bindings1)
-       ;;  (node2 bindings2))
+       ;;  (node1 bindings1 . subtrees1)
+       ;;  (node2 bindings2 . subtrees2))
        ;;
-       (loop for (name bindings) in arguments
-             for index from 0
-             do (assert (symbolp name))
-                (funcall recurse `(,(case name
+       ;; TODO: MORE DOCS! "SUBTREES" is NEW! MORE TESTS, MORE EXAMPLES.
+       (loop
+         for (name bindings . subtrees) in arguments
+         for index from 0
+         do (do-property-leaves ((sub-path &rest leaf-env)
+                                 `(,(case name
                                       (:index index)
                                       (t name))
-                                   ,bindings ,@children)
-                         path
-                         env)))
+                                   ,env
+                                   ,@subtrees))
+              (funcall recurse
+                       `(_ ,bindings
+                           ,@children)
+                       (append sub-path path)
+                       leaf-env))))
+      (:path
+       (funcall recurse
+                (second
+                 (reduce (lambda (name tree)
+                           (list () (list* name tree)))
+                         arguments
+                         :from-end t
+                         :initial-value `(() ,@children)))
+                path
+                env))
       (t (restart-case
              (if-let (walker (assoc node-kind *cons-node-walkers*))
                (funcall (cdr walker)
@@ -49,6 +82,15 @@
 ;;                        ;; Intermediate nodes can be integers, etc.
 ;;                        (export head (symbol-package head)))
 
+(define-condition path-wrapped-error (error)
+  ((path :accessor path-wrapped-error/path :initarg :path)
+   (error :accessor path-wrapped-error/error :initarg :error))
+  (:report (lambda (condition stream)
+             (format stream
+                     "At node ~{~A~^ -> ~}.~%~A"
+                     (reverse (path-wrapped-error/path condition))
+                     (path-wrapped-error/error condition)))))
+
 (defun map-property-leaves (tree callback &key env reducers)
   "Apply CALLBACK to each leaves of the property tree.
 
@@ -66,42 +108,41 @@ ENV is an optional environment (property list) that can be used to provide
 additional bindings inside CALLBACK. REDUCERS is a plist mapping attributes to
 reducing function, which are called to combine old and new attributes when the
 environment is extended. See COMBINE-ENVIRONMENTS."
-  (labels
-      ((recurse (tree path env)
-         (etypecase tree
-           (cons
-            ;; A tree is a name (possibly NIL or compound), a list of additional
-            ;; bindings (either absent, or NIL, or a proper list of bindings),
-            ;; as well as zero or more subtrees.
-            (destructuring-bind (head &optional bindings &rest children) tree
-              (let ((env (combine-environments env bindings reducers)))
-                (typecase head
-                  (cons (walk-meta-node head path children env #'recurse))
-                  (atom
-                   (when (and head (not (and (symbolp head)
-                                             (string= :_ head))))
-                     ;; Only add HEAD in front of PATH if it is not NIL, or if
-                     ;; the NIL node is a leaf.  Internal NIL nodes are useful
-                     ;; to introduce properties without cluttering the tree with
-                     ;; useless names.  Leaf NIL nodes are useful to provide a
-                     ;; dummy sprite (an entry point in the tree).
-                     (push head path))
-                   (if children
-                       (dolist (child children)
-                         (recurse child path env))
-                       (apply callback path env)))))))
-           (atom (recurse (list tree) path env)))))
-    (recurse tree nil env)))
-
-(defmacro do-property-leaves (((path &rest lambda-list)
-                               tree &key result reducers) &body body)
-  (with-gensyms (env)
-    `(block nil
-       (map-property-leaves ,tree (lambda (,path &rest ,env)
-                                    (destructuring-bind ,lambda-list ,env
-                                      ,@body))
-                            :reducers ,reducers)
-       (return ,result))))
+  (let ((*current-reducers* reducers))
+    (labels
+        ((recurse (tree path env)
+           (etypecase tree
+             (cons
+              ;; A tree is a name (possibly NIL or compound), a list of
+              ;; additional bindings (either absent, or NIL, or a proper list
+              ;; of bindings), as well as zero or more subtrees.
+              (destructuring-bind (head &optional bindings &rest children) tree
+                (let ((env (combine-environments env bindings reducers)))
+                  (typecase head
+                    (cons (walk-meta-node head path children env #'recurse))
+                    (atom
+                     (when (and head (not (and (symbolp head)
+                                               (string= :_ head))))
+                       ;; Only add HEAD in front of PATH if it is not NIL, or
+                       ;; if the NIL node is a leaf.  Internal NIL nodes are
+                       ;; useful to introduce properties without cluttering the
+                       ;; tree with useless names.  Leaf NIL nodes are useful
+                       ;; to provide a dummy sprite (an entry point in the
+                       ;; tree).
+                       (push head path))
+                     (if children
+                         (dolist (child children)
+                           (recurse child path env))
+                         (handler-bind ((error
+                                          (lambda (condition)
+                                            (typecase condition
+                                              (path-wrapped-error (error condition))
+                                              (t (error 'path-wrapped-error
+                                                        :path path
+                                                        :error condition))))))
+                           (apply callback path env))))))))
+             (atom (recurse (list tree) path env)))))
+      (recurse tree nil env))))
 
 (defvar *property-leaves-test*
   '(nil        ; root anonymous node
@@ -130,3 +171,39 @@ environment is extended. See COMBINE-ENVIRONMENTS."
                        *property-leaves-test*
                        :reducers (list :x (lambda (old new) (* old new))))
     (format t "~8<x = ~a~> : ~{~a~^ / ~}~%" x (reverse path))))
+
+;; (progn
+;;   (terpri)
+;;   (do-property-leaves ((path &rest things) '((:each
+;;                                               ((:path x u) ())
+;;                                               ((:path x v) ())
+;;                                               (y ()))
+;;                                              ()
+;;                                              a
+;;                                              b))
+;;     (print (list (reverse path) things))))
+
+(progn
+  (terpri)
+  (do-property-leaves ((path &rest things)
+                       '((:each
+                          (x (:special 1) x1 (x2 (:special 3) x21 x22))
+                          (y (:special 2))
+                          (z))
+                         (:special 0)
+                         (a (:special 4))
+                         b))
+    (print (list (reverse path) things))))
+
+;; ((X X1 A) (:SPECIAL 4)) 
+;; ((X X1 B) (:SPECIAL 1)) 
+;; ((X X2 X21 A) (:SPECIAL 4)) 
+;; ((X X2 X21 B) (:SPECIAL 1)) 
+;; ((X X2 X22 A) (:SPECIAL 4)) 
+;; ((X X2 X22 B) (:SPECIAL 1)) 
+;; ((Y A) (:SPECIAL 4)) 
+;; ((Y B) (:SPECIAL 2)) 
+;; ((Z A) (:SPECIAL 4)) 
+;; ((Z B) (:SPECIAL 0))
+
+

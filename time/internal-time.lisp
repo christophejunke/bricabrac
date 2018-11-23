@@ -4,4 +4,6 @@
 
 (in-package :bricabrac.internal-time)
 
-(defun internal- (amount &key (unit :seconds)))
+(defun seconds (seconds)
+  (/ seconds internal-time-units-per-second))
+

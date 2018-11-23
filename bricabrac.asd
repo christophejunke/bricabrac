@@ -1,5 +1,11 @@
-(defsystem :bricabrac
-  :depends-on (#:sdl2 #:alexandria)
+(defsystem #:bricabrac
+  :depends-on (#:alexandria
+               #:bordeaux-threads
+               #:osicat
+               #:external-program
+               #:sdl2
+               #:sdl2-image
+               #:optima)
   :serial t
   :components
 
@@ -8,17 +14,24 @@
     :components
     ((:file "mixins")))
 
-   ;; (:module #:DEBUG
-   ;;  :pathname "debug/"
-   ;;  :components ((:file "debug")))
+   (:module #:DEBUG
+    :pathname "debug/"
+    :components ((:file "debug")))
 
    (:module #:ENVIRONMENTS
     :pathname "environments/"
     :components
     ((:file "package")
-     (:file "environments" :depends-on ("package"))
+     (:file "hash-consing" :depends-on ("package"))
+     (:file "environments" :depends-on ("hash-consing"))
      (:file "indexer" :depends-on ("package"))
      (:file "property-trees" :depends-on ("environments"))))
+
+   ;; (:module #:KEYMAPS
+   ;;  :pathname "keymaps/"
+   ;;  :components
+   ;;  ((:file "package")
+   ;;   (:file "keymaps" :depends-on ("package"))))
 
    (:module #:TIME
     :pathname "time/"
@@ -37,6 +50,7 @@
         :serial t
         :components ((:file "package")
                      (:file "macros")
+                     (:file "ffi")
                      (:file "events")
                      (:file "definitions")))
        (:module #:TESTS
@@ -45,7 +59,20 @@
 
      (:module #:SPRITES
       :pathname "sprites/"
-      :components ((:file "spritesheets")))))))
+      :serial t
+      :components ((:file "packages")
+                   (:file "transform")
+                   (:file "spritesheets")
+                   (:file "textures")
+
+                   ;; move to test system?
+                   ;; (:file "test")
+                   ))))
+
+   (:module #:OPERATING-SYSTEM
+    :pathname "os/"
+    :components
+    ((:file "pipeline")))))
 
 (defsystem :bricabrac/sdl2.event-loop.demo
   :depends-on (#:bricabrac #:cl-opengl)
