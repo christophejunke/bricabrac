@@ -33,8 +33,6 @@
 
 (defstruct filter action source sink)
 
-(make-simple-forms ' (a b c))
-
 (defun make-simple-forms (filters)
   (loop
     for (filter . rest) on filters
@@ -45,7 +43,6 @@
     collect `(spawn ,filter
                     :source ,(or first past-index)
                     :sink ,(or last index))))
-)
 
 (defun make-pipe-symbols (filters)
   (coerce (loop
@@ -55,23 +52,18 @@
               collect (gensym "PIEP"))
           'simple-vector))
 
-(defun pipeline-form (filters :input)
-  
-  
-  (let ((size (length filters)))
-    (let ((pipes (loop for))))
-    )
-  (loop for input = input))
+;; (defun pipeline-form (filters :input)
+;;   (let ((size (length filters)))
+;;     (let ((pipes (loop for))))
+;;     )
+;;   (loop for input = input))
 
-
-
-(loop
-  for (filter first last) (list-mark-first-last '(a b c))
-  collect (make-filter :action :)
-  collect (make-connector :source :input
-                          :sink )
-      )
-
+;; (loop
+;;   for (filter first last) (list-mark-first-last '(a b c))
+;;   collect (make-filter :action :)
+;;   collect (make-connector :source :input
+;;                           :sink )
+;;       )
 
 (defun connect-filters (filters)
   (loop
@@ -86,19 +78,19 @@
     unless last
       collect (make-connector )))
 
-(connect-filters '(a b c))
+;; (connect-filters '(a b c))
 
 
 
-(defmacro with-pipeline ((&key input output error) &body filters)
-  (let ((filters (list-mark-first-last filters)))
+;; (defmacro with-pipeline ((&key input output error) &body filters)
+;;   (let ((filters (list-mark-first-last filters)))
     
-    )
-  (loop
-    for (filter firstp lastp) in (list-mark-first-last filters)
-    collect `(spawn ,filter :input ,(if firstp ,input
-                                        ))
-    )
-  )
+;;     )
+;;   (loop
+;;     for (filter firstp lastp) in (list-mark-first-last filters)
+;;     collect `(spawn ,filter :input ,(if firstp ,input
+;;                                         ))
+;;     )
+;;   )
 
 
