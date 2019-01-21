@@ -69,10 +69,11 @@
                    ;; (:file "test")
                    ))))
 
-   (:module #:OPERATING-SYSTEM
-    :pathname "os/"
-    :components
-    ((:file "pipeline")))))
+   ;; (:module #:OPERATING-SYSTEM
+   ;;  :pathname "os/"
+   ;;  :components
+   ;;  ((:file "pipeline")))
+   ))
 
 (defsystem :bricabrac/sdl2.event-loop.demo
   :depends-on (#:bricabrac #:cl-opengl)

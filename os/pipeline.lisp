@@ -3,9 +3,9 @@
 
 (in-package :bricabrac.pipeline)
 
-(let* ((a (start "ls" () :input nil :output :stream))
-       (ao (process-output-stream a)))
-  (run "wc" '() :input ao :output *standard-output*))
+;; (let* ((a (start "ls" () :input nil :output :stream))
+;;        (ao (process-output-stream a)))
+;;   (run "wc" '() :input ao :output *standard-output*))
 
 (defun list-mark-first-last (list)
   (loop
@@ -49,8 +49,8 @@
             for f in filters
             for first = t then nil    
             unless first
-              collect (gensym "PIEP"))
-          'simple-vector))
+              collect (gensym (string :pipe))
+          'simple-vector)))
 
 ;; (defun pipeline-form (filters :input)
 ;;   (let ((size (length filters)))

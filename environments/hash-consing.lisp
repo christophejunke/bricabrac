@@ -4,7 +4,7 @@
 
 (in-package :bricabrac.environments.hash-consing)
 
-(defmacro with-hash-consing ((hash &key (test #'equal)) &body body)
+(defmacro with-hash-consing ((hash &key (test #'equalp)) &body body)
   (with-gensyms (value hidden-hash)
     `(let* ((,hidden-hash (make-hash-table :test ,test)))
        (unwind-protect 
