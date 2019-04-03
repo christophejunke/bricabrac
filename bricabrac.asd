@@ -14,6 +14,11 @@
     :components
     ((:file "mixins")))
 
+   (:module #:CODE
+    :pathname "code/"
+    :components
+    ((:file "cee")))
+
    (:module #:DEBUG
     :pathname "debug/"
     :components ((:file "debug")))
