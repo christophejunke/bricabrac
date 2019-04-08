@@ -22,17 +22,18 @@
 
 ;; newline convention:
 ;;
-;; whether a form should output a newline or not at some points might lead to
-;; confusion and inconsistent results.
+;; Newlines and indentations can be confusing and give inconsistent
+;; results.
 ;;
-;; to counter that, there is a printing convention in place for all the
-;; following helprs. When we print a THING made of COMPONENTS, it is assumed
-;; that the stream is already placed exactly where THING should be printed,
-;; which means the enclosing scope made the necessary adjustemnts for it.
-;; The printer for THING is responsible for adding newlines and logical groups
-;; for underlying COMPONENTS. At the end of each THING, no trailing newline
-;; should be added: since newlines are a way to change indentation, this is the
-;; job the enclosing scope to dedent and newline.
+;; To counter that, there is a set of conventions in place for all the
+;; following code emitters. When we print a THING made of COMPONENTS,
+;; it is assumed that the stream is already placed exactly where THING
+;; should be printed, which means the enclosing scope made the
+;; necessary adjustemnts for it.  The printer for THING is responsible
+;; for adding newlines and logical groups for underlying
+;; COMPONENTS. At the end of each THING, no trailing newline should be
+;; added: since newlines are a way to change indentation, this is the
+;; job of the caller to dedent and newline.
 ;;
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
