@@ -41,7 +41,8 @@ Events are logged to *STANDARD-OUTPUT*.")
   (:method (game type _)
     ;; too much output otherwise
     (unless (member type '(:windowevent :mousemotion :idle))
-      (format t "~&Event ~@{~a~^ ~}~%" game type)))
+      (format t "~&Event ~@{~a~^ ~}~%" game type)
+      (finish-output)))
   (:method (game (type (eql :quit)) _)
     (throw 'quit nil)))
 
