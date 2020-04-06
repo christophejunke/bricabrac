@@ -9,28 +9,33 @@
   :serial t
   :components
 
-  ((:module #:MIXINS
-    :pathname "mixins/"
-    :components
-    ((:file "mixins")))
+  ((:module #:UTILS
+            :pathname "utils/"
+            :components
+            ((:file "utils")))
+
+   (:module #:MIXINS
+            :pathname "mixins/"
+            :components
+            ((:file "mixins")))
 
    (:module #:CODE
-    :pathname "code/"
-    :components
-    ((:file "cee")))
+            :pathname "code/"
+            :components
+            ((:file "cee")))
 
    (:module #:DEBUG
-    :pathname "debug/"
-    :components ((:file "debug")))
+            :pathname "debug/"
+            :components ((:file "debug")))
 
    (:module #:ENVIRONMENTS
-    :pathname "environments/"
-    :components
-    ((:file "package")
-     (:file "hash-consing" :depends-on ("package"))
-     (:file "environments" :depends-on ("hash-consing"))
-     (:file "indexer" :depends-on ("package"))
-     (:file "property-trees" :depends-on ("environments"))))
+            :pathname "environments/"
+            :components
+            ((:file "package")
+             (:file "hash-consing" :depends-on ("package"))
+             (:file "environments" :depends-on ("hash-consing"))
+             (:file "indexer" :depends-on ("package"))
+             (:file "property-trees" :depends-on ("environments"))))
 
    ;; (:module #:KEYMAPS
    ;;  :pathname "keymaps/"
@@ -39,40 +44,40 @@
    ;;   (:file "keymaps" :depends-on ("package"))))
 
    (:module #:TIME
-    :pathname "time/"
-    :components
-    ((:file "internal-time")))
+            :pathname "time/"
+            :components
+            ((:file "internal-time")))
 
    (:module #:SDL2
-    :pathname "sdl2/"
-    :components
+            :pathname "sdl2/"
+            :components
 
-    ((:module #:EVENT-LOOP
-      :pathname "event-loop/"
-      :components
-      ((:module #:SOURCE
-        :pathname "source/"
-        :serial t
-        :components ((:file "package")
-                     (:file "macros")
-                     (:file "ffi")
-                     (:file "events")
-                     (:file "definitions")))
-       (:module #:TESTS
-        :pathname "tests/"
-        :components ((:file "tests")))))
+            ((:module #:EVENT-LOOP
+                      :pathname "event-loop/"
+                      :components
+                      ((:module #:SOURCE
+                                :pathname "source/"
+                                :serial t
+                                :components ((:file "package")
+                                             (:file "macros")
+                                             (:file "ffi")
+                                             (:file "events")
+                                             (:file "definitions")))
+                       (:module #:TESTS
+                                :pathname "tests/"
+                                :components ((:file "tests")))))
 
-     (:module #:SPRITES
-      :pathname "sprites/"
-      :serial t
-      :components ((:file "packages")
-                   (:file "transform")
-                   (:file "spritesheets")
-                   (:file "textures")
+             (:module #:SPRITES
+                      :pathname "sprites/"
+                      :serial t
+                      :components ((:file "packages")
+                                   (:file "transform")
+                                   (:file "spritesheets")
+                                   (:file "textures")
 
-                   ;; move to test system?
-                   ;; (:file "test")
-                   ))))
+                                   ;; move to test system?
+                                   ;; (:file "test")
+                                   ))))
 
    ;; (:module #:OPERATING-SYSTEM
    ;;  :pathname "os/"

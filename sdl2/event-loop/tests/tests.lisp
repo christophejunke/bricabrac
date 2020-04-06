@@ -48,15 +48,19 @@ Events are logged to *STANDARD-OUTPUT*.")
 
 (defun dispatch ()
   (format t "~&~a~%~%" *message*)
-  (restart-case
-      (with-captured-bindings (rebind *standard-output* *error-output*)
-        (with-everything (:window (w :w 600 :h 600) :gl gl)
-          (rebind
-           (catch 'quit
-             (do-events (event :event-type type :method :poll)
-               (restart-case (handle-event :test type event)
-                 (ignore () :report "Ignore event")))))))
-    (retry () :report "Recreate window")))
+  (tagbody
+   :start
+     (restart-case
+         (with-captured-bindings (rebind *standard-output* *error-output*)
+           (with-everything (:window (w :w 600 :h 600) :gl gl)
+             (rebind
+              (catch 'quit
+                (do-events (event :event-type type :method :wait :timeout nil)
+                  (restart-case (handle-event :test type event)
+                    (ignore () :report "Ignore event")))))))
+       (retry ()
+         :report "Recreate window"
+         (go :start)))))
 
 (defmethod handle-event (game (type (eql :windowevent)) event)
   (with-raw-window-event (event :event code)
@@ -80,7 +84,7 @@ Events are logged to *STANDARD-OUTPUT*.")
             "~&Text input: ~S~%"
             (if (typep code 'char-code)
                 (string (code-char code))
-                :UNKNOWN))))
+                code))))
 
 (defmethod handle-event (game (type (eql :command)) event)
   (format t "~&Game ~s received command ~a~%" game event))

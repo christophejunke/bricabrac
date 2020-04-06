@@ -44,7 +44,7 @@
       (sdl2:gl-make-current w gl)
       (handle game :start :window w)
       (catch 'quit
-        (do-events (event :event-type type :method :poll)
+        (do-events (event :event-type type :method :wait :timeout (dt game))
           (restart-case (handle game type :event event :window w)
             (ignore () :report "Ignore event")))))))
 
@@ -140,7 +140,7 @@
 (defgeneric dt (game)
   (:method (game)
     "Constant DT per tick"
-    30))
+    50))
 
 (defmethod dt ((game demo))
   "Use DT source"
