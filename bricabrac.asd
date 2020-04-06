@@ -1,6 +1,7 @@
 (defsystem #:bricabrac
   :depends-on (#:alexandria
                #:bordeaux-threads
+               #:cl-shellwords
                #:osicat
                #:external-program
                #:sdl2
@@ -36,6 +37,14 @@
              (:file "environments" :depends-on ("hash-consing"))
              (:file "indexer" :depends-on ("package"))
              (:file "property-trees" :depends-on ("environments"))))
+
+   (:module #:SHELL
+    :pathname "shell/"
+    :depends-on (#:ENVIRONMENTS)
+    :components ((:file "packages")
+                 (:file "escape")
+                 (:file "terminal")
+                 (:file "directory")))
 
    ;; (:module #:KEYMAPS
    ;;  :pathname "keymaps/"

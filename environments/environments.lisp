@@ -72,14 +72,20 @@ Define global attribute reducers (most likely with EQL methods).")
 
 ;; (untrace combine-environments)
 
+(defvar *reducer* nil)
+
 (defun combine-environments (old-env new-env &optional reducers)
   "Combine property lists w.r.t. reducers.
 
-REDUCERS is a plist of property names to functions.  A reducer function takes
-the old value, the new value and returns the combined value. You can install
-reducer functions globally by defining a method for ATTRIBUTE-REDUCER (the
-REDUCERS list however takes precedence over them). When no reducer is defined
-for an attribute, the new value shadows the previous one. For example:
+REDUCERS is either a plist of property names to reducer functions, or
+a reducer function that is used for all property.
+
+A reducer function takes the old value, the new value and returns the
+combined value. When an attribute is missing from REDUCERS, the
+default *REDUCER* is tried. If all fails, the generic function
+ATTRIBUTE-REDUCER is called. By default, *REDUCER* is NIL and the
+default method for ATTRIBUTE-REDUCER is used, which simply let the new
+value shadows the previous one. For example:
 
    (combine-environments '(:a 1 :b 2 :c 3)
                          '(:a 0 :b 20 :c 4)
@@ -101,7 +107,11 @@ consecutive values will be combined in the order of appearance.
         for old-value = (resolve-value env attribute)
         do (setf (getf env attribute)
                  (if old-value
-                     (let ((reducer (getf reducers attribute)))
+                     (let ((reducer (typecase reducers
+                                      (function reducers)
+                                      (list (getf reducers
+                                                  attribute
+                                                  *reducer*)))))
                        (if reducer
                            (funcall reducer old-value value)
                            (attribute-reducer attribute old-value value)))

@@ -97,7 +97,7 @@
 CALLBACK is a function accepting:
 
   - PATH, a list of symbols of each node from current leaf to root, without
-    NIL.
+    NIL or names starting with _.
 
   - zero or more keyword arguments, obtained by calling APPLY on the combined
     ENV associated with each leaf.
@@ -121,8 +121,10 @@ environment is extended. See COMBINE-ENVIRONMENTS."
                   (typecase head
                     (cons (walk-meta-node head path children env #'recurse))
                     (atom
-                     (when (and head (not (and (symbolp head)
-                                               (string= :_ head))))
+                     (when (and head
+                                (not
+                                 (and (symbolp head)
+                                      (string= :_ (char (string head) 0)))))
                        ;; Only add HEAD in front of PATH if it is not NIL, or
                        ;; if the NIL node is a leaf.  Internal NIL nodes are
                        ;; useful to introduce properties without cluttering the

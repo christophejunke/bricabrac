@@ -17,4 +17,5 @@
            #:walk-meta-node
            #:walk-meta-node-for-kind
            #:map-property-leaves
-           #:do-property-leaves))
+           #:do-property-leaves
+           #:*reducer*))
