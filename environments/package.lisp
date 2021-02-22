@@ -1,6 +1,9 @@
 (defpackage :bricabrac.environments
   (:use :cl)
   (:import-from #:alexandria
+		alexandria:ensure-list
+		alexandria:ensure-gethash
+		alexandria:hash-table-values
                 alexandria:if-let
                 alexandria:once-only
                 alexandria:make-keyword

@@ -49,14 +49,16 @@
                                (list "-c" (sh-escape (list* "exec" args)))))))
       (_X11 (:geometry ,(arg "-geometry") :class ,(arg "-class")
              :execute ,(lambda (args)
-                        (and args (list* "-e" args))))
-       (:xterm ,`(:hold ("-hold")
-                  :colorsp ,(lambda (x) (unless x '("-cm")))
-                  :term "xterm")
-        nil
-        ;; example of child terminal, named '(:xterm :mpv), which forces
-        ;; specific translations for options.
-        (:test ,`(:colorsp ,(constantly '("+cm")) :hold ,(constantly nil)))))))
+			 (and args (list* "-e" args))))
+	    (:gnome (:term "gnome-terminal"))
+	    (:xterm (:hold ("-hold")
+			   :colorsp ,(lambda (x) (unless x '("-cm")))
+			   :term "xterm")
+		    
+		    nil
+		    ;; example of child terminal, named '(:xterm :mpv), which forces
+		    ;; specific translations for options.
+		    (:test ,`(:colorsp ,(constantly '("+cm")) :hold ,(constantly nil)))))))
 
   ;; translate terminal-agnostic options as actual options
   (defparameter *terminal-options*
@@ -81,7 +83,7 @@
     (let ((option (getf *options* name)))
       (typecase terminal-option
         (function (funcall terminal-option option))
-        (null option)
+        (null nil)
         (t (and option terminal-option))))))
 
 (defun terminal% (program

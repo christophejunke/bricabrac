@@ -18,9 +18,8 @@ Events are logged to *STANDARD-OUTPUT*.")
   (with-captured-bindings (rebind *standard-output* *error-output*)
     (with-everything (:window (w :w 600 :h 600) :gl gl)
       (rebind
-       (flet ((info (&rest rest)
-                (declare (dynamic-extent rest))
-                (print rest)))
+       (flet ((info (&rest rest) (print rest)))
+	 (declare (inline info))
          (do-match-events (:method :wait :timeout 600)
            (:quit (return))
            (:idle (info :idle))
@@ -48,19 +47,13 @@ Events are logged to *STANDARD-OUTPUT*.")
 
 (defun dispatch ()
   (format t "~&~a~%~%" *message*)
-  (tagbody
-   :start
-     (restart-case
-         (with-captured-bindings (rebind *standard-output* *error-output*)
-           (with-everything (:window (w :w 600 :h 600) :gl gl)
-             (rebind
-              (catch 'quit
-                (do-events (event :event-type type :method :wait :timeout nil)
-                  (restart-case (handle-event :test type event)
-                    (ignore () :report "Ignore event")))))))
-       (retry ()
-         :report "Recreate window"
-         (go :start)))))
+  (with-captured-bindings (--> *standard-output* *error-output*)
+    (with-everything (:window (w :w 600 :h 600) :gl gl)
+      (-->
+       (catch 'quit
+	 (do-events (event :event-type type :method :wait :timeout nil)
+	   (with-simple-restart (ignore "Ignore event")
+	     (handle-event :test type event))))))))
 
 (defmethod handle-event (game (type (eql :windowevent)) event)
   (with-raw-window-event (event :event code)
@@ -90,6 +83,7 @@ Events are logged to *STANDARD-OUTPUT*.")
   (format t "~&Game ~s received command ~a~%" game event))
 
 (register-user-event-type :test-event)
+
 (defmethod handle-event (game (type (eql :test-event)) event)
   (format t "~&Game ~s received :test-event~%" game))
 

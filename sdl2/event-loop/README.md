@@ -144,9 +144,11 @@ general-purpose slots named :DATA1 and :DATA2.
 The DEFINE-WINDOWEVENT-MACRO defines one macro for each
 subtype of windowevents, making it possible to directly
 destructure an SDL2 event as a specific kind of window
-event.
+event. For example:
 
-For example: WITH-WINDOW-EVENT-LEAVE can be used as follows:
+    (define-windowevent-macro with-window-event-moved :windowevent-moved)
+
+Then, WITH-WINDOW-EVENT-MOVE can be used as follows:
 
     (with-window-event-moved (e :x x :y y :window-id w)
       (print (list (get-window-title w) x y)))
@@ -166,6 +168,7 @@ macro provides a way to dispatch on event types using either
 two kinds of clauses:
 
 - a single keyword which identifies an event-type, T, or OTHERWISE
+
 - a form with the same syntax as the destructuring WITH- macros seen
   previously. That allows to reuse the same syntax for both dispatch
   and destructuring, and benefits from auto-completion facilities that
@@ -231,9 +234,9 @@ Notice that:
 
 # DO-MATCH-EVENTS
 
-DO-MATCH-EVENTS is a simple macro that combines DO-EVENTS
-with EVENT-TYPE-CASE, in such a way that neither EVENT nor
-EVENT-TYPE needs be explicitly named. For example, consider:
+DO-MATCH-EVENTS combines DO-EVENTS with EVENT-TYPE-CASE, in such a way
+that neither EVENT nor EVENT-TYPE needs be explicitly named. For
+example, consider:
 
      (do-match-events (:method :wait)
        (:quit (return))

@@ -17,13 +17,6 @@ Define global attribute reducers (most likely with EQL methods).")
     "Shadow the previous value with the new one."
     (declare (ignore old)) new))
 
-(let ((var (or ())))
-  (declare (special var))
-  (let ((var (cons 3 var)))
-    (declare (special var))
-    var)
-  var)
-
 (defmacro with-special-var ((var &optional default) &body body)
   `(locally (declare (special ,var))
      (unless (boundp ',var)
@@ -78,11 +71,11 @@ Define global attribute reducers (most likely with EQL methods).")
   "Combine property lists w.r.t. reducers.
 
 REDUCERS is either a plist of property names to reducer functions, or
-a reducer function that is used for all property.
+a reducer function that is used for all properties.
 
-A reducer function takes the old value, the new value and returns the
-combined value. When an attribute is missing from REDUCERS, the
-default *REDUCER* is tried. If all fails, the generic function
+A reducer function takes an old value O, a new value N and returns the
+combined value of O and N. When an attribute is missing from REDUCERS,
+the default *REDUCER* is tried. If all fails, the generic function
 ATTRIBUTE-REDUCER is called. By default, *REDUCER* is NIL and the
 default method for ATTRIBUTE-REDUCER is used, which simply let the new
 value shadows the previous one. For example:
