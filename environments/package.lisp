@@ -11,7 +11,7 @@
            #:combine-environments
            #:make-indexer
            #:make-environment
-           #:*default-environment-type*
+           #:*environment-type*
            #:environment-bind
            #:*cons-node-walkers*
            #:walk-meta-node

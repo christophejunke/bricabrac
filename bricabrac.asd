@@ -2,6 +2,8 @@
   :depends-on (#:alexandria
                #:bordeaux-threads
                #:cl-shellwords
+               #:cl-containers
+               #:drakma
                #:osicat
                #:external-program
                #:sdl2

@@ -52,6 +52,8 @@
                        (append sub-path path)
                        leaf-env))))
       (:path
+       ;; 
+       ;; 
        (funcall recurse
                 (second
                  (reduce (lambda (name tree)
@@ -174,16 +176,23 @@ environment is extended. See COMBINE-ENVIRONMENTS."
                        :reducers (list :x (lambda (old new) (* old new))))
     (format t "~8<x = ~a~> : ~{~a~^ / ~}~%" x (reverse path))))
 
-;; (progn
-;;   (terpri)
-;;   (do-property-leaves ((path &rest things) '((:each
-;;                                               ((:path x u) ())
-;;                                               ((:path x v) ())
-;;                                               (y ()))
-;;                                              ()
-;;                                              a
-;;                                              b))
-;;     (print (list (reverse path) things))))
+(progn
+  (terpri)
+  (do-property-leaves ((path &rest things) '((:each
+                                              ((:path x u) ())
+                                              ((:path x v) ())
+                                              (y ()))
+                                             ()
+                                             a
+                                             b))
+    (print (list (reverse path) things))))
+
+;; ((X U A) NIL) 
+;; ((X U B) NIL) 
+;; ((X V A) NIL) 
+;; ((X V B) NIL) 
+;; ((Y A) NIL) 
+;; ((Y B) NIL)
 
 (progn
   (terpri)
@@ -196,16 +205,4 @@ environment is extended. See COMBINE-ENVIRONMENTS."
                          (a (:special 4))
                          b))
     (print (list (reverse path) things))))
-
-;; ((X X1 A) (:SPECIAL 4)) 
-;; ((X X1 B) (:SPECIAL 1)) 
-;; ((X X2 X21 A) (:SPECIAL 4)) 
-;; ((X X2 X21 B) (:SPECIAL 1)) 
-;; ((X X2 X22 A) (:SPECIAL 4)) 
-;; ((X X2 X22 B) (:SPECIAL 1)) 
-;; ((Y A) (:SPECIAL 4)) 
-;; ((Y B) (:SPECIAL 2)) 
-;; ((Z A) (:SPECIAL 4)) 
-;; ((Z B) (:SPECIAL 0))
-
 
