@@ -40,32 +40,37 @@ Define global attribute reducers (most likely with EQL methods).")
                              (resolve-value environment reference)))))))))
       value)))
 
-(let ((absent (gensym)))
-  (defun resolve-value (environment attribute &optional default)
-    (with-special-var (seen)
-      (when (member attribute seen)
-        (error "Circular dereference of attribute ~S~
+(defun eget (env key)  
+  (loop 
+    for (k v) on env by #'cddr
+    when (eq k key)
+      do (return (values v t))
+    finally (return (values nil nil))))
+
+(defun resolve-value (environment attribute &optional default)
+  (with-special-var (seen)
+    (when (member attribute seen)
+      (error "Circular dereference of attribute ~S~
               ~%~
               ~% - environment : ~S~
-              ~% - cycle       : ~{~S~^ -> ~}"
+              ~% - cycle       : ~{~S~^ -> ~}~%"
+             attribute
+             environment
+             (reverse (cons attribute seen))))
+    (multiple-value-bind (value foundp) (eget environment attribute)
+      (when (and seen (not foundp))
+        (error "Reference not found: ~s ~s"
                attribute
-               environment
-               (reverse (cons attribute seen))))
-      (let ((value (getf environment attribute absent)))
-        (when (and seen (eq value absent))
-          (error "Reference not found: ~s ~s"
-                 attribute
-                 (reverse seen)))
-        (maybe-resolve% environment
-                        (if (eq value absent) default value)
-                        attribute)))))
+               (reverse seen)))
+      (maybe-resolve% environment
+                      (if foundp value default)
+                      attribute))))
 
 ;; (resolve-value '(:a (ref :c) :b (ref :a) :c (ref :b)) :c)
-;; (resolve-value '(:a 0 :b (ref :a) :c (ref :b)) :c)
-
-;; (untrace combine-environments)
+;; (resolve-value '(:a 0 :b (ref :a) :c (ref :b)) :c)q
 
 (defvar *reducer* nil)
+(defvar *environment*)
 
 (defun combine-environments (old-env new-env &optional reducers)
   "Combine property lists w.r.t. reducers.
@@ -74,11 +79,14 @@ REDUCERS is either a plist of property names to reducer functions, or
 a reducer function that is used for all properties.
 
 A reducer function takes an old value O, a new value N and returns the
-combined value of O and N. When an attribute is missing from REDUCERS,
-the default *REDUCER* is tried. If all fails, the generic function
-ATTRIBUTE-REDUCER is called. By default, *REDUCER* is NIL and the
-default method for ATTRIBUTE-REDUCER is used, which simply let the new
-value shadows the previous one. For example:
+combined value of O and N. The special *ENVIRONMENT* variable is bound
+to the current environment in a reducer function.
+
+When an attribute is missing from REDUCERS, the default *REDUCER* is
+tried. If all fails, the generic function ATTRIBUTE-REDUCER is
+called. By default, *REDUCER* is NIL and the default method for
+ATTRIBUTE-REDUCER is used, which simply let the new value shadows the
+previous one. For example:
 
    (combine-environments '(:a 1 :b 2 :c 3)
                          '(:a 0 :b 20 :c 4)
@@ -94,21 +102,20 @@ consecutive values will be combined in the order of appearance.
 
    => (:TRANSFORM #S(TRANSFORM :SX 3 :SY 3 :TX 3 :TY 3))
 "
-  (loop with env = (copy-seq old-env)
-        for (attribute raw-value) on new-env by #'cddr
-        for value = (maybe-resolve% env raw-value attribute)
-        for old-value = (resolve-value env attribute)
-        do (setf (getf env attribute)
-                 (if old-value
-                     (let ((reducer (typecase reducers
-                                      (function reducers)
-                                      (list (getf reducers
-                                                  attribute
-                                                  *reducer*)))))
-                       (if reducer
-                           (funcall reducer old-value value)
-                           (attribute-reducer attribute old-value value)))
-                     value))
-        finally (return env)))
-
+  (flet ((combine (attribute old new *environment*)
+           (if-let (reducer (typecase reducers
+                              (function reducers)
+                              (list (getf reducers attribute *reducer*))))
+             (funcall reducer old new)
+             (attribute-reducer attribute old new))))
+    (declare (inline combine))
+    (loop with env = (copy-seq old-env)
+          for (attribute raw-value) on new-env by #'cddr
+          for value = (maybe-resolve% env raw-value attribute)
+          for old-value = (resolve-value env attribute)
+          do (setf (getf env attribute)
+                   (if old-value
+                       (combine attribute old-value value env)
+                       value))
+          finally (return env))))
 

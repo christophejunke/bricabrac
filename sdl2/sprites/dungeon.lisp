@@ -19,6 +19,21 @@
 
 (defvar *debug* t)
 
+(defclass forest-dungeon (has-keymap)
+    ((hero :initarg :hero
+           :accessor hero
+           :initform (make-instance 'wizard))
+     (sleep-duration
+      :initarg :sleep-duration
+      :initform 0.05
+      :accessor sleep-duration)
+     (scale
+      :initarg :scale
+      :initform 2
+      :accessor game-scale)))
+
+(defvar *game*)
+
 (defun sdl-rect-from-env (&key row col env transform)
   (multiple-value-call #'sdl2:make-rect
     (pixel-rectangle col
@@ -26,10 +41,6 @@
                      (resolve-value env :width 1)
                      (resolve-value env :height 1)
                      transform)))
-
-;; (define-spritesheet toto (:package nil)
-;;   '(root (:file #P"tileset.png"
-;;           :order (:row :col) :row 1 :col 1) child))
 
 (defun delta/frame-reducer (old new)
   (case new
@@ -40,22 +51,16 @@
     (t new)))
 
 (defun calciumtrice (name)
-  (merge-pathnames
-   (make-pathname :directory '(:relative "jeu")
-                  :type "png"
-                  :name (format nil "~a spritesheet calciumtrice" name) )
-   (user-homedir-pathname)))
-
-;; (find-spritesheet 'dungeon-by-calciumtrice)
-;; on-sprite-redefinition-hook
+  (or (probe-file
+       (merge-pathnames
+        (make-pathname :directory '(:relative "calciumtrice/")
+                       :type "png"
+                       :name (format nil "~a" name) )
+        (user-homedir-pathname)))
+      (error "not found: ~a" name)))
 
 (defmacro switchf (place branch)
   `(setf ,place (switch-branch ,place ,branch)))
-
-;; (switchf (first *sprite*) 'rat)
-;; (switchf (first *sprite*) 'rat)
-;; (switchf (first *sprite*) '(gesture right))
-;; (switchf (first *sprite*) 'short)
 
 (defclass has-keymap ()
   ((keymap :accessor keymap
@@ -136,16 +141,6 @@
   (loop for (modifier . keymap) in keymaps
         collect (cons modifier (ensure-keymap keymap target))))
 
-;; (handler-bind ((error
-;;                  (lambda (e)
-;;                    (let ((*print-right-margin* 10))
-;;                      (format t "~&~%~a" e)) (invoke-restart 'ignore))))
-;;   (restart-case
-;;       (ensure-keymap '((:scancode-quit :event :quit)
-;;                        (:scancode-quit :event :crash)
-;;                        (t :delegate hero)))
-;;     (ignore ())))
-
 (defmethod initialize-instance :after ((object has-keymap) &key &allow-other-keys)
   (setf (keymap object) (ensure-keymaps (keymap object) object)))
 
@@ -205,7 +200,6 @@
         (let ((next-sprite (funcall (animation-continuation animation)
                                     sprite)))
           (values next-sprite (animation-start-index next-sprite))))))
-;;;;;;
 
 (defclass character-sprite (sprite-description)
   ((animation :accessor animation)
@@ -246,9 +240,6 @@
                           (rect-height r)))
                        rectangles))))))))
 
-;; (funcall (animation-continuation (ensure-animation '(:next walk left)))
-;;          (sprite (hero *game*)))
-
 (defun animation-reducer (old new)
   (let ((old (ensure-animation old)))
     (etypecase old
@@ -282,6 +273,30 @@
 
 ;;;;;;
 
+(deftype list-of (&rest types)
+  (etypecase types
+    (null 'null)
+    (cons (destructuring-bind (head . tail) types
+            `(cons ,head (list-of ,@tail))))))
+
+(defun normalize-key (key) 
+  (etypecase key 
+    ((list-of symbol symbol) key)
+    ((list-of symbol) (normalize-key (first key)))
+    (symbol (list key (make-keyword key)))))
+
+(defmacro lambda-env ((&rest keys) &body body)
+  (loop 
+    with env = (gensym "ENV")
+    for (var key) in (mapcar #'normalize-key keys)
+    collect `(,var (eget ,env ,key)) into bindings
+    finally (return
+              `(make-delayed :function
+                (lambda ()
+                  (let* ((,env *environment*)
+                         ,@bindings)
+                    ,@body))))))
+
 (define-spritesheet dungeon-by-calciumtrice (:package :calciumtrice
                                              :class 'dungeon-spritesheet)
   (:flip (lambda (old new) (set-difference new old)))
@@ -296,12 +311,14 @@
     (flet ((vertical-move (direction)
              "Hack"
              (lambda (character)
-               (incf (y character) (* (game-scale *game*)
-                                      direction)))))
+               (incf (y character)
+                     (* (game-scale *game*)
+                        direction)))))
       `(_ (:tile-callback ,#'sdl-rect-from-env
            :sprite-description-class ,(find-class 'character-sprite)
            :order (:row :col)
            :col (:range 1 10)
+           :idle/col (:range 1 10)
            :dx/frame 0
            :dy/frame 0
            :animation :circular
@@ -309,6 +326,8 @@
 
            :gesture-row 2
            :speed 2
+           :dx/walk 2
+           :dy/walk 0
            :attack-prepare (1 2 3 4)
            :attack-hold (5 6 7 6)
            :attack-stop (4 3 2 1)
@@ -324,25 +343,32 @@
                     (:up idle)))
           (_ (:transform ,(scale 32) 
               :transform ,(move -1)
-              :variant ,(move 0 5)) 
+              :variant ,(move 0 5)
+              :attack-dx10 0) 
              ((:each
                (wizard (:file ,(calciumtrice "wizard")
+                        :dx/walk #(1 1 3 1 1 3 1 1 1 1)
                         :attack-prepare (1 2 3 4)
                         :attack-hold 4
-                        :attack-release (5 6 7 8 9 10 2 3 4))
+                        :attack-dx10 #(0 0 0 -2 -1 0 0 0 0 0)
+                        :attack-release (5 6 7 8 9 10  2 3 4))
                        (short (:switch ((:toggle long))))
                        (long (:transform (ref :variant)
                               :switch ((:toggle short)))))
                (rogue (:file ,(calciumtrice "rogue")
+                       :dx/walk 4
                        :transform (ref :variant)
-                       :attack-prepare (1 2 )
+                       :idle/col ,(list* 2 3 4 5 4 (loop repeat 25 collect 3))
+                       :attack-prepare (1 2)
                        :attack-hold 2
+                       :attack-dx10   #(-1 1 6 -4 -1 0 0 0 0 0)                             
                        :speed 3))
                (cleric (:file ,(calciumtrice "cleric")
                         :gesture-cols (,@(range 1 10) 10 10)
-                        :attack-prepare (1 2)
-                        :attack-hold 3
-                        :attack-release (2 3 4 5 6 7 8 9 10 4 3 1)))
+                        :attack-prepare (1 2 3)
+                        :attack-hold 4
+                        :attack-dx10   #(-1 1 1 2 3 2 1  0 0 0)
+                        :attack-release (4 5 6 7 8 9 10 4 3 1)))
                (goblin (:file ,(calciumtrice "goblin")
                         :attack-prepare (1 2)
                         :attack-hold 3)
@@ -358,6 +384,7 @@
                         :attack-release (8 9 10)))
                (minotaur (:file ,(calciumtrice "minotaur")
                           :flip ,flip
+                          :dx/walk #(0 0 0 4 3 0 0 0 4 3)
                           :gesture-cols (1 2 3 4 5 6 6 6 6 7 8 9 10)
                           :attack-prepare (1 2)
                           :attack-hold (3)
@@ -369,13 +396,16 @@
               ;; default properties for characters
               ()
               ((:each (idle (:row 1
+                             :col (ref :idle/col)
                              :switch ((:up . ,(vertical-move -10))
                                       (:down . ,(vertical-move 10)))))
                       #2=(gesture (:row (ref :gesture-row)
                                    :switch ((t))
                                    :col (ref :gesture-cols)
                                    :animation (:next idle)))
-                      #3=(walk (:row 3 :dx/frame (ref :speed)))
+                      #3=(walk (:row 3 
+                                :dx/frame (ref :dx/walk)
+                                :dy/frame (ref :dy/walk)))
                       (attack (:row 4)
                               (prepare (:col (ref :attack-prepare)
                                         :animation (:next hold)
@@ -392,6 +422,7 @@
                                      :switch ((t))))
                               (release (:col (ref :attack-release)
                                         :trigger :attack
+                                        :dx/frame (ref :attack-dx10)
                                         :switch ((:cancel-attack idle)
                                                  (t))
                                         :animation (:next hold))))
@@ -404,7 +435,7 @@
                (right)))
 
              ((:each
-               (_ (:file ,(calciumtrice "rat and bat")
+               (_ (:file ,(calciumtrice "rat_and_bat")
                    :flip ,flip
                    :switch ((:cancel-attack)))
                   (rat (:switch ((:toggle bat))
@@ -413,7 +444,7 @@
                         :gravity (1/2 . 0.6)
                         :switch ((:toggle rat))
                         :attack-after (:next walk)
-                        :attack-dx10 #(1  1  1  1  3  5  5  3  3  1)))))
+                        :attack-dx10 #(1 1 1 1 3 5 5 3 3 1)))))
               (:attack-after (:next idle)
                :attack-dx10 #(0  0  0  0  3  3  3  0  0  0)
                :switch ((:attack attack moving))
@@ -453,19 +484,6 @@
   ()
   (:default-initargs
    :sprite calciumtrice:wizard-short-idle-right))
-
-(defclass forest-dungeon (has-keymap)
-    ((hero :initarg :hero
-           :accessor hero
-           :initform (make-instance 'wizard))
-     (sleep-duration
-      :initarg :sleep-duration
-      :initform 0.05
-      :accessor sleep-duration)
-     (scale
-      :initarg :scale
-      :initform 2
-      :accessor game-scale)))
 
 (defparameter *hero*
   (make-instance 'wizard
@@ -517,7 +535,7 @@
 (defmethod handle-event :around ((game forest-dungeon)
                                  (type (eql :idle))
                                  event)
-  (set-render-draw-color *renderer* 20 30 20 255)
+  (set-render-draw-color *renderer* 20 40 20 255)
   (render-clear *renderer*)
   (set-render-draw-color *renderer* 255 255 255 255)
   (call-next-method)
@@ -571,6 +589,8 @@
         (when *debug*
           (render-fill-rect *renderer* gravity))))))
 
+;;(setf *debug* nil)
+
 (defmethod update ((game forest-dungeon))
   (update (hero game)))
 
@@ -579,7 +599,8 @@
                    (sprite sprite)
                    (x x)
                    (y y)
-                   (next-action next-action)) character
+                   (next-action next-action))
+      character
     (let ((action next-action))
       (when action
         (setf next-action nil)
@@ -606,12 +627,6 @@
            (retry () :report "Retry computing speed"
              (go retry))
            (ignore () :report "Ignore move"))))))
-
-;; (setf (sprite (hero *game*))
-;;       calciumtrice:slime-green-idle-left )
-;; (switchf (sprite (hero *game*)) '(wizard short))
-;; (switchf (sprite (hero *game*)) 'rogue)
-;; (decf (game-scale *game*))
 
 (defmethod handle-event ((game forest-dungeon) (type (eql :keydown)) event)
   (with-key-down-event (event :keysym keysym :repeat repeat)
@@ -682,11 +697,13 @@
         (when action
           (setf next-action action))))))
 
+
+
+
+
+
 (let* ((width 1200)
-       (height 800)
-       (*default-pathname-defaults*
-         (asdf:system-relative-pathname :bricabrac
-                                        "sdl2/sprites/")))
+       (height 800))
   (with-captured-bindings (rebind
                            *standard-output*
                            *trace-output*
@@ -702,13 +719,9 @@
            (restart-game-loop ()
              :report "Restart game loop")))))))
 
-;; (decf (game-scale *game*))
-;; (switchf (sprite (hero *game*)) '(cleric))
-;; (hero *game*)
-
 (setf *debug* nil)
 
-(switchf (sprite (hero *game*)) '(idle left))
+(switchf (sprite (hero *game*)) '(idle))
 (switchf (sprite (hero *game*)) '(wizard long))
 (switchf (sprite (hero *game*)) '(goblin strong))
 (switchf (sprite (hero *game*)) '(rogue))

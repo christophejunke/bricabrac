@@ -21,4 +21,10 @@
            #:walk-meta-node-for-kind
            #:map-property-leaves
            #:do-property-leaves
-           #:*reducer*))
+           #:*reducer*
+           #:*environment*))
+
+(defpackage :bricabrac.environments.builtins
+  (:use :cl)
+  (:export #:fold-pathname
+           #:fold-set-difference))

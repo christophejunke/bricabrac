@@ -132,7 +132,6 @@
             thereis (path-to-leaf-p node stack))
         (error 'branch-not-found :root root :branch branch))))
 
-;; anamorphism
 (defun make-spritesheet-tree-builder ()
   "Return a root node and a closure that builds a tree rooted under it.
 
@@ -519,7 +518,7 @@ both (&KEY INDEX ROW COL) and (&KEY ROW COL) are valid when ORDER is
              (let ((*sprite-package*
                      (and ,package
                           (or (find-package ,package)
-                              (error "Package not found: ~a" ,package)))))
+                              (make-package ',package)))))
                (compile-spritesheet-tree
                 :spritesheet-name ',name
                 :spritesheet-class ,class

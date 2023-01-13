@@ -6,7 +6,8 @@
            #:scale
            #:move
            #:transform
-           #:identity-transform))
+           #:identity-transform
+           #:sdl-rect-from-env))
 
 (defpackage :bricabrac.sdl2.sprites.spritesheets
   (:use

@@ -1,10 +1,5 @@
 (in-package :bricabrac.sdl2.sprites.textures)
 
-;; TODO:
-;; if multiple spritesheets share the same file, do not create mutliple
-;; textures: use a counter for how many spritesheet use it (spritesheets might
-;; be actiavetd/deactivated separately).
-
 (defparameter *active-textures* nil)
 
 ;; we map each spritesheet to a "textures" struct

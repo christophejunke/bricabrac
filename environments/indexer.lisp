@@ -26,7 +26,7 @@ passed to the function, not the keys (which are used only for hashing).
 	  (let ((result (make-array i :adjustable ())))
 	    (prog1 result
 	      (flet ((add (v) (setf (aref result (first v)) (second v))))
-		(maphash-values #'add map))))))))
+		(alexandria:maphash-values #'add map))))))))
 
 (defun test-indexer ()
   (flet ((str (x) (typecase x (pathname (namestring x)) (t (string x)))))

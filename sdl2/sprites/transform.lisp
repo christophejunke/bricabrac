@@ -85,3 +85,10 @@
          (round (abs unit-x))
          (round (abs unit-y)))))))
 
+(defun sdl-rect-from-env (&key row col env transform)
+  (multiple-value-call #'sdl2:make-rect
+    (pixel-rectangle col
+                     row
+                     (bricabrac.environments:resolve-value env :width 1)
+                     (bricabrac.environments:resolve-value env :height 1)
+                     transform)))

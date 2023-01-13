@@ -38,6 +38,7 @@ environment is extended. See COMBINE-ENVIRONMENTS."
                      arguments)))
          (path-component-p (head)
            (typecase head
+             (null nil)
              (symbol (not (string= :_ (char (string head) 0))))))
          (wrap-with-path (path)
            (lambda (condition)

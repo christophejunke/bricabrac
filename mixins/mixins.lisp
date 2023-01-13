@@ -1,5 +1,7 @@
 (defpackage :bricabrac.mixins
   (:use :cl)
+  (:import-from #:alexandria
+                alexandria:with-gensyms)
   (:export #:has-name
            #:name
 

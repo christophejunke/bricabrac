@@ -35,9 +35,15 @@
             ((:file "package")
              (:file "hash-consing" :depends-on ("package"))
              (:file "environments" :depends-on ("hash-consing"))
+             (:file "builtins" :depends-on ("package"))
              (:file "indexer" :depends-on ("package"))
              (:file "property-trees" :depends-on ("environments"))))
 
+   (:module #:PROCESSES
+            :depends-on (#:ENVIRONMENTS)
+            :pathname "processes/"
+            :components ((:file "packages")))
+   
    (:module #:SHELL
     :pathname "shell/"
     :depends-on (#:ENVIRONMENTS)

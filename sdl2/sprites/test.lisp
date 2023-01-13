@@ -41,10 +41,13 @@
   ;; flip is a list, combine with union
   (:flip #'union)
   
+  ;; merge pathnames
+  (:file (lambda (old new) (if old (merge-pathnames new old) new)))
+  
   `(_ (:tile-callback ,#'sdl-rect-from-env
        :order (:row :col))
 
-      (_ (:file "doc/characters.png"
+      (_ (:file #p"snake.png"
           :transform ,(move 8 0) ;; align to actual left of sprite
           :transform ,(scale 32) ;; each row/col takes 32 pixels in width
           :transform ,(move -1)  ;; 1-based index
@@ -54,12 +57,13 @@
          (snake (:row 4
                  :event ((:stop idle)))
                 (idle (:col 1 :speed/frame #(0))
-                      (left (:flip (:horizontal)
+                      (left (
                              :speed/frame :negate
                              :event ((:left slither)
                                      (:right right))))
 
-                      (right (:event ((:right slither)
+                      (right (:flip (:horizontal)
+                              :event ((:right slither)
                                       (:left left)))))
 
                 (slither (:col
@@ -67,13 +71,16 @@
                           :speed/frame
                           #(1 2 3 0 0 0))
 
-                         (left (:flip (:horizontal)
-                                :speed/frame :negate
+                         (left (:speed/frame :negate
                                 :event ((:right idle))))
 
-                         (right (:event ((:left idle)))))))
-      (_ (:file "doc/temple-tiles.png")
-         (ground (:col 448 :row 128 :width 64 :height 32)))))
+                         (right (:flip (:horizontal)
+                                 :event ((:left idle)))))))
+      (_ (:file #p"exterior.png"
+                :transform ,(scale 16)
+                :height 1
+                :width 1)
+         (ground (:col 0 :row 3)))))
 
 ;;(find-spritesheet 'platformer-in-the-forest)
 ;; on-sprite-redefinition-hook
@@ -102,20 +109,19 @@
                                         :h height
                                         :title "Snake")
                         :gl gl)
-        (let* ((*default-pathname-defaults*
-                 (asdf:system-relative-pathname :bricabrac "sdl2/sprites/"))
+        (let* ((*default-pathname-defaults* #P"~/calciumtrice/")
                (ground-src (svref (rectangles forest:ground) 0))
                (ground-dst (sdl2:copy-rect ground-src)))
           (setf (rect-y ground-dst) (- height (rect-height ground-dst)))
           (with-renderer (renderer window)
             (set-render-draw-color renderer 20 15 15 255)
             (with-rects ((dest origin
-                               (- height size (sdl2:rect-height ground-dst) -10)
+                               (- height size (sdl2:rect-height ground-dst) -2)
                                dest-width
                                size))
               (with-active-spritesheets ('platformer-in-the-forest
                                          :renderer renderer)
-                (do-match-events ()
+                (do-match-events (:method :wait :timeout 60)
                   (:quit (return))
                   (:idle
                    ;; logic
@@ -137,8 +143,7 @@
                                      ground-dst))
                    (sdl2-render-index renderer snake index dest)
                    (setf index (mod (1+ index) (length (rectangles snake))))
-                   (render-present renderer)
-                   (sleep 0.05))
+                   (render-present renderer))
                   (with-key-down-event (_ :keysym key :repeat repeat)
                     (when (zerop repeat)
                       (environment-bind (event) (environment snake)
@@ -152,9 +157,9 @@
                                            (:scancode-left :left)
                                            (:scancode-right :right))
                                          event)))
-                          ;; avoid "sliding" effect when reusing the same
-                          ;; sprite with a frame index reset to 0.
                           (let ((switch (switch-branch snake branch)))
                             (unless (eq switch snake)
                               (setf next-description switch))))))))))))))))
+
+ (snake-test)
 
