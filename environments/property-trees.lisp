@@ -27,25 +27,25 @@
           (setf root
                 `(let ((,child ,root))
                    `((:root ,',tree ,@',path) () ,,child))))))
-    `(register-property-tree ',name (property-tree ,root)))))
+    `(register-property-tree ',name (property-tree ,root))))
 
 (defun register-property-tree (name ptree)
   (setf (get name 'property-tree) ptree))
 
-(define-property-tree sample ()
-  '(_ (:a 3 :b 2)
-    a 
-    b
-    (c (:a 0) 
-     x 
-     y 
-     z)))
+;; (define-property-tree sample ()
+;;   '(_ (:a 3 :b 2)
+;;     a 
+;;     b
+;;     (c (:a 0) 
+;;      x 
+;;      y 
+;;      z)))
 
-(let ((c (quote (a (b c)))))
-  `((:root ,'z ,@'(a b)) nil ,c))
+;; (let ((c (quote (a (b c)))))
+;;   `((:root ,'z ,@'(a b)) nil ,c))
 
-(define-property-tree extended (:parent (sample c y))
-  '(_ (:b 1) u v))
+;; (define-property-tree extended (:parent (sample c y))
+;;   '(_ (:b 1) u v))
 
 (defun ensure-pt (pt)
   (typecase pt

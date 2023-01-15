@@ -5,6 +5,7 @@
                #:cl-containers
                #:drakma
                #:osicat
+               #:iolib
                #:external-program
                #:sdl2
                #:sdl2-image
@@ -35,6 +36,7 @@
             :pathname "environments/"
             :components
             ((:file "package")
+             (:file "with")
              (:file "hash-consing" :depends-on ("package"))
              (:file "environments" :depends-on ("hash-consing"))
              (:file "indexer" :depends-on ("package"))

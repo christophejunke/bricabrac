@@ -1,4 +1,5 @@
 (in-package #:bricabrac.shell)
+(use-package :bricabrac.with)
 
 (declaim
  (inline call-within-temporary-directory
@@ -42,9 +43,13 @@
   `(call-with-io-socket (lambda (,socket ,file) ,@body)
                         :socket-name ,socket-name))
 
-(defun io-address (&key name)
-  (let ((file (osicat:native-namestring (merge-pathnames name))))
-    (values (iolib:ensure-address file :family :local) file)))
+(defun io-address (&key name abstract)
+  (iolib:ensure-address (if abstract
+                            name
+                            (osicat:native-namestring 
+                             (merge-pathnames name)))
+                        :abstract abstract 
+                        :family :local))
 
 (defun call-with-io-socket (server &key socket-name)
   (multiple-value-bind (address file) (io-address :name socket-name)
@@ -55,6 +60,31 @@
       (iolib:bind-address socket address)
       (iolib:listen-on socket)
       (funcall server socket file))))
+
+(register-context ctx::unix-socket-server)
+
+(defmethod call-with-context ((_ (eql ctx:unix-socket-server))
+                              symbols
+                              function
+                              &rest arguments)
+  (destructuring-bind (&key named abstract) arguments
+    (assert (= 1 (length symbols)))
+    (let* ((name (or named "socket"))
+           (address (io-address :name name :abstract abstract)))
+      (iolib:with-open-socket (socket
+                               :type :stream
+                               :connect :passive
+                               :address-family :local)
+        (iolib:bind-address socket address)
+        (iolib:listen-on socket)
+        (funcall function socket)))))
+
+(defmethod bricabrac.with:expand-with ((_ (eql :accept-connection))
+                                       args
+                                       vars
+                                       body)
+  (destructuring-bind (client) vars
+    `(iolib:with-accept-connection (,client ,@args) ,@body)))
 
 (defmacro with-task-client ((server &key send recv)
                             &body body)
@@ -160,6 +190,17 @@ trap '_cleanup' EXIT" (getf *script-mappings* :socket)))
 
 (defun %current-path ()
   (osicat:native-namestring *default-pathname-defaults*))
+
+(defmethod bricabrac.with:call-with-context ((_ (eql :temporary-directory))
+                                             symbols
+                                             function
+                                             &rest args)
+  (destructuring-bind (&optional prefix) args
+    (when symbols (assert (not (rest symbols))))
+    (let ((dir (tmpdir (or prefix *tmpdir-name*))))
+      (unwind-protect (let ((*default-pathname-defaults* dir))
+                        (funcall function))
+        (osicat:delete-directory-and-files dir)))))
 
 (defun call-within-temporary-directory (fn &key prefix)
   (let ((dir (tmpdir (or prefix *tmpdir-name*))))
