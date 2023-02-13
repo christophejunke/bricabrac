@@ -31,12 +31,12 @@ For example:
     => (:A 130)
 ")
 
-(define-local-keyword bricabrac.fold-environments.modes:.eval
-    "Interpret CONS forms as expressions.
+"Interpret CONS forms as expressions.
 
 All occurences of uninterned symbols #:NEW an #:OLD (case-insensitive
 comparison) are replaced by their respective QUOTED values at time of
-evaluation. Likewise, #:GET is a shorthand for RESOLVE.
+evaluation. Likewise, #:GET is a shorthand for RESOLVE. This is
+especially useful when prototyping but this calls EVAL.
 
     (FOLD-ENVIRONMENTS* '(:A 10 :A 20) 
                         '(:A (CONS #:NEW #:OLD)))
@@ -53,8 +53,22 @@ evaluation. Likewise, #:GET is a shorthand for RESOLVE.
                         '((:SCALE (*))
                           (:X (CONS (* #:NEW (#:GET :SCALE)) #:OLD))
                           (:Y (CONS (* #:NEW (#:GET :SCALE)) #:OLD))))
-    (:Y (30 120 2) :X (10 60 2) :SCALE 1)
-")
+    => (:Y (30 120 2) :X (10 60 2) :SCALE 1)
+
+    (FOLD-ENVIRONMENTS* '((:SCALE 1 :TRANSLATE 0) ;; init
+                          (:SCALE 3)              ;; scale (x3)
+                          (:TRANSLATE #C(1 -1))   ;; move to #C(3 -3)
+                          (:POINT #C(0 0))        ;; compute points ..
+                          (:POINT #C(1 0))        ;; relative to ..
+                          (:POINT #C(1 1)))       ;; transform
+
+                        ;; TRANSFORMATION RULES
+                        '((:SCALE (*) :TRANSLATE (+))
+                          (:POINT (CONS (* (+ #:NEW (#:GET :TRANSLATE))
+                                           (#:GET :SCALE))
+                                        #:OLD))))
+    => (:POINT (6 #C(6 -3) #C(3 -3)) :TRANSLATE #C(1 -1) :SCALE 3)
+"
 
 (define-local-keyword bricabrac.fold-environments.modes:.simple/eval
     "Apply mode .SIMPLE if possible, or .EVAL")
