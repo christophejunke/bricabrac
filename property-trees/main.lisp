@@ -1,5 +1,9 @@
 (in-package #:bricabrac.property-trees)
 
+(defun map-property-leaves (root-node callback environment reducers)
+  
+  )
+
 ;; (defmacro do-property-leaves
 ;;     ((treepath
 ;;       &key environment result combinator)

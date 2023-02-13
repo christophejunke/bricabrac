@@ -1,6 +1,6 @@
 (in-package #:bricabrac.local-keywords.private)
 
-(defmacro define-keyword (symbol &optional (doc nil doc-p))
+(defmacro define-local-keyword (symbol &optional (doc nil doc-p))
   `(prog1 ',symbol
      (defvar ,symbol ',symbol
        ,(if doc-p

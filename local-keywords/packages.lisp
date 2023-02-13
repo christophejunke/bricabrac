@@ -1,6 +1,6 @@
 (defpackage #:bricabrac.local-keywords
   (:use)
-  (:export #:define-keyword
+  (:export #:define-local-keyword
            #:local-keyword-p
            #:all-local-keywords))
 

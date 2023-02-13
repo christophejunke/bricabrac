@@ -103,7 +103,7 @@
 (defsystem :bricabrac/property-trees
   :pathname "property-trees"
   :depends-on ("alexandria"
-               "bricabrac/combine-environments")
+               "bricabrac/fold-environments")
   :serial t
   :components ((:file "packages")
                (:file "main")))
@@ -115,9 +115,9 @@
   :components ((:file "packages")
                (:file "main")))
 
-(defsystem :bricabrac/combine-environments
+(defsystem :bricabrac/fold-environments
   :depends-on (:bricabrac/local-keywords)
-  :pathname "combine-environments"
+  :pathname "fold-environments"
   :serial t
   :components ((:file "packages")
                (:file "main")))
