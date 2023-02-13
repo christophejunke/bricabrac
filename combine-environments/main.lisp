@@ -5,11 +5,20 @@
 
 If bound to a list, it is assumed to be a property list.")
 
+(defun expand-environmen-bind% (keys env body)
+  (loop
+    with environment = (gensym "ENV")
+    for entry in keys
+    for (sym k%) = (if (consp entry) entry (list entry))
+    for key = (or k%
+                  (if (local-keyword-p sym)
+                      sym
+                      (intern (string sym) "KEYWORD")))
+    collect `(,sym (resolve ,environment ,key)) into bindings
+    finally (return `(let ((,environment ,env)) (let ,bindings ,@body)))))
+
 (defmacro environment-bind ((&rest keys) env &body body)
-  (let ((e (gensym)))
-    `(let ((,e ,env))
-       (let ,(mapcar (lambda (k) `(resolve ,e ,k)) keys)
-         ,@body))))
+  (expand-environmen-bind% keys env body))
 
 (defgeneric combine-for-key (key old new)
   (:method (_ old new)
@@ -31,12 +40,22 @@ If bound to a list, it is assumed to be a property list.")
 (defun resolve (environment key)
   (getf environment key))
 
+(defvar *environment*)
+
 (defgeneric combine (combinator env key old new)
   (:method ((combinators list) env key old new)
     (let ((function (resolve combinators key)))
-      (if function
-          (funcall function old new)
-          (combine-for-key key old new)))))
+      (let ((*environment* env))
+        (if function
+            (etypecase function
+              ;; CALL FUNCTION
+              (function (funcall function old new))
+              ;; Interpret (INIT I F) forms
+              ((cons (member init :init) cons)
+               (destructuring-bind (_ I F) function
+                 (declare (ignore _))
+                 (funcall F (or old I) new))))
+            (combine-for-key key old new))))))
 
 (defun combine-two-environments (old new &optional (combinator *combinator*))
   (loop
@@ -55,3 +74,7 @@ If bound to a list, it is assumed to be a property list.")
     (reduce #'fold
             (ensure-list-of-environments environments)
             :initial-value nil)))
+
+(defun init (initial-value function)
+  (lambda (old new)
+    (funcall function (or old initial-value) new)))

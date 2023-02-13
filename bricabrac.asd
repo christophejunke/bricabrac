@@ -100,7 +100,7 @@
    ;;  ((:file "pipeline")))
    ))
 
-(defsystem "bricabrac/property-trees"
+(defsystem :bricabrac/property-trees
   :pathname "property-trees"
   :depends-on ("alexandria"
                "bricabrac/combine-environments")
@@ -108,14 +108,15 @@
   :components ((:file "packages")
                (:file "main")))
 
-(defsystem "bricabrac/local-keywords"
+(defsystem :bricabrac/local-keywords
   :pathname "local-keywords"
   :depends-on ()
   :serial t
   :components ((:file "packages")
                (:file "main")))
 
-(defsystem "bricabrac/combine-environments"
+(defsystem :bricabrac/combine-environments
+  :depends-on (:bricabrac/local-keywords)
   :pathname "combine-environments"
   :serial t
   :components ((:file "packages")
