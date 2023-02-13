@@ -56,12 +56,14 @@
       (iolib:listen-on socket)
       (funcall server socket file))))
 
-(defmacro with-task-client ((server &key send recv)
+(defmacro with-task-client ((server &key send recv (wait nil wp))
                             &body body)
   (with-gensyms (client %message)
     (check-type send symbol)
     (check-type recv symbol)
-    `(iolib:with-accept-connection (,client ,server)
+    `(iolib:with-accept-connection (,client
+                                    ,server
+                                    ,@(and wp `(:wait ,wait)))
        (flet (,@(and send
                   `((,send (,%message)
                            (write-line ,%message ,client)
@@ -99,7 +101,7 @@
     (dolist (header headers)
       (write-script-header header)))
   (:method ((_ (eql :shebang)))
-    (write-string "#!/bin/sh"))
+    (write-string "#!/bin/bash"))
   (:method ((_ (eql :cd-workdir)))
     (format t "cd ~s" (getf *script-mappings* :workdir)))
   (:method ((_ (eql :set-debug)))
@@ -107,6 +109,11 @@
     (write-string "set -x"))
   (:method ((_ (eql :set-error)))
     (write-string "set -e"))
+  (:method ((_ (eql :define-io-function)))
+    (format t "export IO_SOCKET=~s
+_io () {
+  echo \"$1\" | nc -U \"${IO_SOCKET}\"
+}" (getf *script-mappings* :socket)))
   (:method ((_ (eql :trap-cleanup-socket)))
     (format t "export IO_SOCKET=~s
 _io () {
@@ -164,7 +171,7 @@ trap '_cleanup' EXIT" (getf *script-mappings* :socket)))
 (defun call-within-temporary-directory (fn &key prefix)
   (let ((dir (tmpdir (or prefix *tmpdir-name*))))
     (unwind-protect (let ((*default-pathname-defaults* dir))
-                      (with-terminal-options ((:wait t) (:hold nil))
+                      (with-terminal-options ((:wait t) ((:hold :default) nil))
                         (funcall fn)))
       (warn "Deleting ~a: ~:[error~;done~]"
             dir

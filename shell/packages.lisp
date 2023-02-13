@@ -1,7 +1,7 @@
 
 (defpackage :bricabrac.shell
   (:use :alexandria :cl #:bricabrac.environments
-        #:bricabrac.utils)
+        #:bricabrac.utils #:pipeline)
   (:export #:terminal
            #:terminal%
            #:run-program-wrapper
@@ -16,7 +16,14 @@
            #:x11
            #:exactly
            #:rgb
+
            #:option
+           #:option*
+
+           #:tmux-sessions
+           #:best-tmux-session
+           #:with-tmux-session
+
            #:with-terminal-options
            #:with-standard-terminal-options
            #:with-output-to-script
@@ -26,6 +33,10 @@
            #:*socket-file*
            #:*script-permissions*
            #:*script-name*
+
+           #:*script-mappings*
+           #:write-script-header
+           #:write-script-footer
 
            #:with-task-client
            #:wto

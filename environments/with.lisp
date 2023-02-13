@@ -61,8 +61,8 @@
 
     The above is sufficient to execute:
 
-      (with (open "/tmp/test.data" :direction :output) :as o
-        (write-line "test" o))
+      (with (open \"/tmp/test.data\" :direction :output) :as o
+        (write-line \"test\" o))
 
     NB. The two returned functions might be closures sharing
     data not visible to the user."))

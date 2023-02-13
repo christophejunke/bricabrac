@@ -279,20 +279,24 @@
     (destructuring-bind (type &optional exec) (option :reflow)
       (flet ((% (e k) (list* (or exec e) k))
              (name () (when-let ((n (option :tmux-name)))
-                        `("-n" ,(format nil "[~a]" n)))))
+                        `("-n" ,(format nil "[~a]" n))))
+             (back () (when (option :background)
+                        '("-d"))))
         (case type
-          (:tmux (% "/usr/bin/tmux"
-                    (if-let ((session (option :tmux-attach-to)))
-                      `("new-window"
-                        "-t" ,(format nil "~a:" session)
-                        ,@(name)
-                        ,@(loop
-                            for e in (second (option :env))
-                            collect "-e" collect e))
-                      `("new"
-                        ,@(when-let ((s (option :tmux-session)))
-                            `("-s" ,s "-A"))
-                        ,@(name)))))
+          (:tmux 
+           (% "/usr/bin/tmux"
+              (if-let ((session (option :tmux-attach-to)))
+                `("new-window"
+                  "-t" ,(format nil "~a:" session)
+                  ,@(back)
+                  ,@(name)
+                  ,@(loop
+                      for e in (second (option :env))
+                      collect "-e" collect e))
+                `("new"
+                  ,@(when-let ((s (option :tmux-session)))
+                      `("-s" ,s "-A"))
+                  ,@(name)))))
           (:screen (% "/usr/bin/screen" (option .screen)))
           (t (warn "unknown reflow ~a (exec=~a)" type exec)))))))
 
@@ -319,10 +323,40 @@
 (defun identity-or (another)
   (lambda (v) (or v (option another))))
 
+;;; EXAMPLE
+;;
+;; saturating list: a list of values or T, T means "everything"
+;; folding is the union of values with a special case for T 
+ 
+(defun fold-saturating (old new)
+  (cond
+    ((or (eq old t)
+         (eq new t)))
+    (t (union old (remove-duplicates (ensure-list new))))))
+
+(defun list-saturating-option (value)
+  ;; returns a function (see option*)
+  (if (eq value t)
+      ;; (option* key ...) => T
+      (constantly t)
+      (lambda (&optional (query nil query-p))
+        (if query-p
+            ;; (option* key v) => v belongs to value list
+            (member query value) 
+            ;; (option* key) => the whole list
+            value))))
+
+(defun option* (key &rest args)
+  (apply (option key) args))
+
+;;; -----
+
 (progn
   (defparameter *terminal-options-tree*
     `(_root
       (:term string-downcase
+        :debug list-saturating-option
+        :final list-saturating-option
         :directory directory-option
         :ignore-warnings identity
         :status-hook identity
@@ -332,6 +366,8 @@
         :input identity
         .defaults (;; enable colors?
                    (:colors . t)
+                   ;; debugging (may be a list)
+                   (:debug . nil)
                    ;; hold term open when the command quits?
                    ;; working directory
                    (:directory . t)
@@ -345,7 +381,7 @@
                    (:behavior . nil)
                    ;; default tmux-name
                    (:tmux-name . nil))
-        .reducers (:env rappend)
+        .reducers (:env rappend :debug fold-saturating :final fold-saturating)
         :behavior identity
         :tmux-session identity
         :tmux-name ,(identity-or :title)
@@ -361,6 +397,7 @@
         .environment ((:inherit
                        "XDG_RUNTIME_DIR" ; necessary e.g. for alsa
                        "LANG" "SSH_AUTH_SOCK" "DISPLAY" "HOME" "USER" "PATH")))
+      (:debug (:term nil))
       (:tmux (:term "tmux"
                :execute ,(lambda (args)
 			   (let ((args (ecase (option :hold)
@@ -372,9 +409,22 @@
 					 ((:never nil)
 					  args))))
 			     (append (rest (reflow-options)) args)))
+
+               ;; tmux connects to a server which spawns a pane,
+               ;; making the script always asynchronous but the
+               ;; (constantly t) here is to make sure to wait for the
+               ;; new pane to be created; FIXME: for tmux there should
+               ;; be an option to make the thread wait for completion
+               ;; instead so that :wait nil/t makes sense. BUT the
+               ;; :wait passed down to run-program must be T always.
+
+               ;; always true, but in two distinct ways
+               :wait ,(lambda (v) (if v t :no-wait))
+
+               :background identity
 	       :hold identity
 	       :title identity
-	       :options (:no-display)
+	       :options (:no-display :background)
                :no-display identity))
       (:shell (:term "sh"
                 :execute ,(lambda (args)
@@ -434,22 +484,28 @@
                                       ((:when w) t wp)
                                       ((:unless u) t up))
                entry
-             (multiple-value-bind (x default dp) (if (consp x)
-                                                     (values (first x) (second x) t)
-                                                     (values x nil nil))
+             (multiple-value-bind (x modifier dp) 
+                 (if (consp x)
+                     (values (first x) (second x) t)
+                     (values x nil nil))
 	       (when dp
-		 (assert (eq default :default)
+		 (assert #1=(member modifier '(:default :final))
 			 ()
-			 (if (eq x :default)
-			     ":DEFAULT keyword should be in second position"
-			     "Invalid symbol, only :DEFAULT allowed in second position")))
+			 (if #1#
+			     "Modifier keyword should be in second position"
+			     "Expected :DEFAULT or :FINAL in second position")))
                (let ((code `((push (cons ,x ,y) ,env))))
                  (when (and wp up)
                    (warn "Both :WHEN and :UNLESS, :WHEN evaluated first"))
                  (when up (setf code `((unless ,u ,@code))))
                  (when wp (setf code `((when ,w ,@code))))
-                 (when default (setf code `((unless (optionp ,x) ,@code))))
-                 code)))))
+                 (when modifier 
+                   (setf code 
+                         (ecase modifier
+                           (:default `((unless (optionp ,x) ,@code)))
+                           (:final `(,@code
+                                     (push (cons :final ,x) ,env))))))
+                 `((unless (option* :final ,x) ,@code)))))))
     (with-gensyms (env)
       `(let ((,env (list)))
          ,@(loop for o in options append (parse-option env o))
@@ -508,12 +564,11 @@
 (defun terminal% (program &key args)
   (multiple-value-bind (program arguments more-arguments)
       (terminal-arguments% program args)
-    (format *debug-io* "~&;; ~a~%" (sh-escape (list* program arguments)))
-    (apply #'run-program-wrapper
-           program
-           arguments
-           more-arguments)))
-
+    (when program
+      (apply #'run-program-wrapper
+             program
+             arguments
+             more-arguments))))
 
 (defun execute% (program &key args)
   (format *debug-io* "~&~a~%" (sh-escape (list* program args)))
@@ -538,3 +593,18 @@
 
 (defvar *standard-options* '((:term :xterm)))
 
+(defun tmux-sessions ()
+  (with-pipeline (:channel t)
+    (program "tmux" "list-sessions" "-F" "#{session_name}")
+    #'signal-each-line))
+
+(defun best-tmux-session (candidates)
+  (let ((sessions (tmux-sessions)))
+    (or (loop for c in candidates thereis (find c sessions :test #'string=))
+        (first sessions))))
+
+(defmacro with-tmux-session ((&rest choices) &body body)
+  (let ((best (gensym)))
+    `(let ((,best (best-tmux-session (list ,@choices))))
+       (with-terminal-options ((:tmux-attach-to ,best))
+         ,@body))))

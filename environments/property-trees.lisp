@@ -27,30 +27,7 @@
           (setf root
                 `(let ((,child ,root))
                    `((:root ,',tree ,@',path) () ,,child))))))
-    `(register-property-tree ',name (property-tree ,root)))))
-
-(defun register-property-tree (name ptree)
-  (setf (get name 'property-tree) ptree))
-
-(define-property-tree sample ()
-  '(_ (:a 3 :b 2)
-    a 
-    b
-    (c (:a 0) 
-     x 
-     y 
-     z)))
-
-(let ((c (quote (a (b c)))))
-  `((:root ,'z ,@'(a b)) nil ,c))
-
-(define-property-tree extended (:parent (sample c y))
-  '(_ (:b 1) u v))
-
-(defun ensure-pt (pt)
-  (typecase pt
-    (symbol (get pt 'property-tree :unknown))
-    (cons pt)))
+    `(register-property-tree ',name (property-tree ,root))))
 
 (defun pt-get (pt path)
   (gethash path (property-tree-hash (ensure-pt pt))))
@@ -234,16 +211,16 @@ environment is extended. See COMBINE-ENVIRONMENTS."
                        :reducers (list :x (lambda (old new) (* old new))))
     (format t "~8<x = ~a~> : ~{~a~^ / ~}~%" x (reverse path))))
 
-(progn
-  (terpri)
-  (do-property-leaves ((path &rest things) '((:each
-                                              ((:path x u) ())
-                                              ((:path x v) ())
-                                              (y ()))
-                                             ()
-                                             a
-                                             b))
-    (print (list (reverse path) things))))
+;; (progn
+;;   (terpri)
+;;   (do-property-leaves ((path &rest things) '((:each
+;;                                               ((:path x u) ())
+;;                                               ((:path x v) ())
+;;                                               (y ()))
+;;                                              ()
+;;                                              a
+;;                                              b))
+;;     (print (list (reverse path) things))))
 
 ;; ((X U A) NIL) 
 ;; ((X U B) NIL) 
@@ -252,15 +229,15 @@ environment is extended. See COMBINE-ENVIRONMENTS."
 ;; ((Y A) NIL) 
 ;; ((Y B) NIL)
 
-(progn
-  (terpri)
-  (do-property-leaves ((path &rest things)
-                       '((:each
-                          (x (:special 1) x1 (x2 (:special 3) x21 x22))
-                          (y (:special 2))
-                          (z))
-                         (:special 0)
-                         (a (:special 4))
-                         b))
-    (print (list (reverse path) things))))
+;; (progn
+;;   (terpri)
+;;   (do-property-leaves ((path &rest things)
+;;                        '((:each
+;;                           (x (:special 1) x1 (x2 (:special 3) x21 x22))
+;;                           (y (:special 2))
+;;                           (z))
+;;                          (:special 0)
+;;                          (a (:special 4))
+;;                          b))
+;;     (print (list (reverse path) things))))
 

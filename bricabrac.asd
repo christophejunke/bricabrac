@@ -1,14 +1,18 @@
 (defsystem #:bricabrac
-  :depends-on (#:alexandria
-               #:bordeaux-threads
-               #:cl-shellwords
-               #:cl-containers
-               #:drakma
-               #:osicat
-               #:external-program
-               #:sdl2
-               #:sdl2-image
-               #:optima)
+  :depends-on (#:ALEXANDRIA
+               #:BORDEAUX-THREADS
+               #:CL-CONTAINERS
+               #:CL-SHELLWORDS
+               #:DRAKMA
+               #:EXTERNAL-PROGRAM
+               #:IOLIB
+               #:IOLIB/SOCKETS
+               #:OPTIMA
+               #:OSICAT
+               #:PIPELINE
+               #:SDL2
+               #:SDL2-IMAGE)
+
   :serial t
   :components
 
@@ -95,6 +99,27 @@
    ;;  :components
    ;;  ((:file "pipeline")))
    ))
+
+(defsystem "bricabrac/property-trees"
+  :pathname "property-trees"
+  :depends-on ("alexandria"
+               "bricabrac/combine-environments")
+  :serial t
+  :components ((:file "packages")
+               (:file "main")))
+
+(defsystem "bricabrac/local-keywords"
+  :pathname "local-keywords"
+  :depends-on ()
+  :serial t
+  :components ((:file "packages")
+               (:file "main")))
+
+(defsystem "bricabrac/combine-environments"
+  :pathname "combine-environments"
+  :serial t
+  :components ((:file "packages")
+               (:file "main")))
 
 (defsystem :bricabrac/sdl2.event-loop.demo
   :depends-on (#:bricabrac #:cl-opengl)
