@@ -61,28 +61,30 @@
       (iolib:listen-on socket)
       (funcall server socket file))))
 
-(register-context ctx::unix-socket-server)
+;;(register-context ctx::unix-socket-server)
 
-(defmethod call-with-context ((_ (eql ctx:unix-socket-server))
-                              symbols
-                              function
-                              &rest arguments)
-  (destructuring-bind (&key named abstract) arguments
-    (assert (= 1 (length symbols)))
-    (let* ((name (or named "socket"))
-           (address (io-address :name name :abstract abstract)))
-      (iolib:with-open-socket (socket
-                               :type :stream
-                               :connect :passive
-                               :address-family :local)
-        (iolib:bind-address socket address)
-        (iolib:listen-on socket)
-        (funcall function socket)))))
+;; (defmethod call-with-context (_w
+;;                               (_ (eql ctx:unix-socket-server))
+;;                               symbols
+;;                               function
+;;                               arguments)
+;;   (destructuring-bind (&key named abstract) arguments
+;;     (assert (= 1 (length symbols)))
+;;     (let* ((name (or named "socket"))
+;;            (address (io-address :name name :abstract abstract)))
+;;       (iolib:with-open-socket (socket
+;;                                :type :stream
+;;                                :connect :passive
+;;                                :address-family :local)
+;;         (iolib:bind-address socket address)
+;;         (iolib:listen-on socket)
+;;         (funcall function socket)))))
 
-(defmethod bricabrac.with:expand-with ((_ (eql :accept-connection))
-                                       args
-                                       vars
-                                       body)
+(defmethod bricabrac.with:expand-context (_with
+                                          (_ (eql :accept-connection))
+                                          args
+                                          vars
+                                          body)
   (destructuring-bind (client) vars
     `(iolib:with-accept-connection (,client ,@args) ,@body)))
 
@@ -191,10 +193,11 @@ trap '_cleanup' EXIT" (getf *script-mappings* :socket)))
 (defun %current-path ()
   (osicat:native-namestring *default-pathname-defaults*))
 
-(defmethod bricabrac.with:call-with-context ((_ (eql :temporary-directory))
+(defmethod bricabrac.with:call-with-context (_w
+                                             (_ (eql :temporary-directory))
                                              symbols
                                              function
-                                             &rest args)
+                                             args)
   (destructuring-bind (&optional prefix) args
     (when symbols (assert (not (rest symbols))))
     (let ((dir (tmpdir (or prefix *tmpdir-name*))))

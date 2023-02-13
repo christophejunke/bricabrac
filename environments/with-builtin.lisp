@@ -131,6 +131,35 @@
            (make-pathname :directory arguments))))
     (funcall function)))
 
+(declaim (inline enqueue% make-queue% head%))
+
+(defun head% (queue)
+  (cdar queue))
+
+(defun make-queue% ()
+  (let ((q (cons nil nil))) (cons q q)))
+
+(defun enqueue% (queue values)
+  (setf (cdr queue) (last (nconc (cdr queue) (copy-list values)))))
+
+(defmethod expand-context
+    ((_w (eql :with))
+     (_t (eql :list-collector))
+     arguments
+     symbols
+     body)
+  (assert (not arguments) () +no-arguments+)
+  (destructuring-bind (collector) symbols
+    (with :symbols named (queue values)
+      `(let ((,queue (make-queue%)))
+         (flet ((,collector (&rest ,values)
+                  (enqueue% ,queue ,values)
+                  (head% ,queue)))
+           ,@body)))))
+
+(with :list-collector :as collect
+  (collect 1 2 3)
+  (collect :a :b))
 
 (within :temporary-directory
   (within (:directory "test" (random 10))

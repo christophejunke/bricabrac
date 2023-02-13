@@ -31,7 +31,7 @@
 ;; possible to define custom context managers with only two
 ;; functions (see MAKE-WIND-UNWIND-PAIR), by specializing
 ;; the more general CALL-WITH-CONTEXT function, or by
-;; specializing the even more EXPAND-CONTEXT function called
+;; specializing the EXPAND-CONTEXT function called
 ;; during macroexpansion.
 ;;
 ;; Syntax:
@@ -130,6 +130,8 @@
         (pop body) ;; :as, ...
         (destructuring-bind (var &rest body) body
           (typecase var
+            ;; no vars actuall
+            (null (values nil body))
             ;; vars in a literal list
             (cons (values var body))
             ;; a single var
@@ -215,5 +217,4 @@
          ,@(if (and var var-p) 
                `((let ((,var *default-pathname-defaults*)) ,@body))
                body)))))
-
 
