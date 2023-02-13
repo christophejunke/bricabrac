@@ -1,15 +1,17 @@
 (in-package #:bricabrac.fold-environments.private)
 
-(defvar *environment*)
-
-(defvar *fold-mapping-interpretation-mode* nil
-  "See INTERPRET-FOLD-FUNCTION and BRICABRAC.FOLD-ENVIRONMENTS.MODES package")
-
 (defvar *fold-mapping* nil
   "Object that maps keys to folder functions.
 
 If bound to a list, it is assumed to be a property list and subject to
 *FOLD-MAPPING-INTERPRETATION-MODE*")
+
+(defvar *fold-mapping-interpretation-mode* nil
+  "See INTERPRET-FOLD-FUNCTION and BRICABRAC.FOLD-ENVIRONMENTS.MODES package")
+
+(defvar *environment* nil
+  "Current environment, bound during the extent of a folding function.
+See RESOLVE")
 
 (define-local-keyword bricabrac.fold-environments.modes:.simple
     "Interpret (F) and (I F) quoted forms.
@@ -34,7 +36,7 @@ For example:
 
 All occurences of uninterned symbols #:NEW an #:OLD (case-insensitive
 comparison) are replaced by their respective QUOTED values at time of
-evaluation.
+evaluation. Likewise, #:GET is a shorthand for RESOLVE.
 
     (FOLD-ENVIRONMENTS* '(:A 10 :A 20) 
                         '(:A (CONS #:NEW #:OLD)))
@@ -43,6 +45,15 @@ evaluation.
     (FOLD-ENVIRONMENTS* '(:A 10 :A 20 :A 10)
                         '(:A (UNION #:OLD (LIST #:NEW))))
     => (:A (20 10))
+
+    (FOLD-ENVIRONMENTS* '((:SCALE 2 :X 1 :Y 1)
+                          (:SCALE 3 :X 10 :Y 20)
+                          (:SCALE 1/6 :X 10 :Y 30))
+
+                        '((:SCALE (*))
+                          (:X (CONS (* #:NEW (#:GET :SCALE)) #:OLD))
+                          (:Y (CONS (* #:NEW (#:GET :SCALE)) #:OLD))))
+    (:Y (30 120 2) :X (10 60 2) :SCALE 1)
 ")
 
 (define-local-keyword bricabrac.fold-environments.modes:.simple/eval
@@ -65,17 +76,20 @@ evaluation.
       (list* key value (without env key))
       (without env key)))
 
-(defun resolve (environment key)
+(defun resolve (key &optional (environment *environment*))
   (getf environment key))
 
 (defun eval-code% (input old new)
-    (labels ((s= (str) 
-               (lambda (s)
-                 (and (symbolp s)
-                      (null (symbol-package s))
-                      (string-equal (symbol-name s) str))))
-             (rewrite (v s n) (subst-if (list 'quote v) (s= s) n)))
-      (eval (rewrite new "new" (rewrite old "old" input)))))
+  (labels ((q (v) (list 'quote v))
+           (s= (str) 
+             (lambda (s)
+               (and (symbolp s)
+                    (null (symbol-package s))
+                    (string-equal (symbol-name s) str))))
+           (rewrite (v s n) (subst-if v (s= s) n)))
+    (eval (rewrite (q new) "new"
+                   (rewrite (q old) "old" 
+                            (rewrite 'resolve "get" input))))))
 
 (defgeneric interpret-fold-function (mode function old new)
   (:method ((_ null) input old new)
@@ -96,22 +110,23 @@ evaluation.
 
 (defgeneric generic-fold (mapping env key old new)
   (:method ((mapping list) env key old new)
-    (let ((function (resolve mapping key)))
-      (let ((*environment* env))
-        (typecase function
-          (null (fold-for-key key old new))
-          ((or function symbol)
-           (funcall function old new))
-          (t (interpret-fold-function *fold-mapping-interpretation-mode*
-                                      function
-                                      old
-                                      new)))))))
+    (let ((mapping (fold-environments* mapping nil)))
+      (let ((function (resolve key mapping)))
+        (let ((*environment* env))
+          (typecase function
+            (null (fold-for-key key old new))
+            ((or function symbol)
+             (funcall function old new))
+            (t (interpret-fold-function *fold-mapping-interpretation-mode*
+                                        function
+                                        old
+                                        new))))))))
 
 (defun fold-environments (old new &optional (mapping *fold-mapping*))
   (loop
     :for env := (copy-tree old) :then next
     :for (key new-val) :on new by #'cddr
-    :for old-val := (resolve env key)
+    :for old-val := (resolve key env)
     :for fold := (generic-fold mapping env key old-val new-val)
     :for next := (augment env key fold)
     :finally (return env)))
@@ -134,7 +149,7 @@ evaluation.
                   (if (local-keyword-p sym)
                       sym
                       (intern (string sym) "KEYWORD")))
-    collect `(,sym (resolve ,environment ,key)) into bindings
+    collect `(,sym (resolve ,key ,environment)) into bindings
     finally (return `(let ((,environment ,env)) (let ,bindings ,@body)))))
 
 (defmacro environment-bind ((&rest keys) env &body body)
