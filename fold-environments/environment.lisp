@@ -1,6 +1,5 @@
 (in-package #:bricabrac.fold-environments.private)
 
-
 (defun without (environment key)
   (let ((entry (member key environment)))
     (if entry
@@ -35,14 +34,18 @@ See RESOLVE")
 (defmacro environment-bind ((&rest keys) env &body body)
   (expand-environment-bind% keys env body))
 
-(defmacro with-environment ((&rest env) &body body)
-  (flet ((expand (env)
-           `(let ((*environment*
-                    (fold-environments% *environment* (list ,@env))))
-              ,@body)))
-    (cond
-      ((not env) `(progn ,@body))
-      ((consp (first env))
-       (loop for (k v) in env append (list k v) into list
-             finally (return (expand list))))
-      (t (expand env)))))
+(defmacro with-environment (name/from (&rest env) &body body)
+  (multiple-value-bind (name from)
+      (if (consp name/from)
+          (destructuring-bind (name from) name/from
+            (values name from))
+          (values name/from name/from))
+    (flet ((expand (env)
+             `(let ((,name (fold-environments% ,from (list ,@env))))
+                ,@body)))
+      (cond
+        ((not env) `(progn ,@body))
+        ((consp (first env))
+         (loop for (k v) in env append (list k v) into list
+               finally (return (expand list))))
+        (t (expand env))))))

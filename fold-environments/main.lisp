@@ -6,7 +6,8 @@
 If bound to a list, it is assumed to be a property list and subject to
 *FOLD-MAPPING-INTERPRETATION-MODE*")
 
-(defvar *fold-mapping-interpretation-mode* nil
+(defvar *fold-mapping-interpretation-mode*
+  .simple
   "See INTERPRET-FOLD-FUNCTION and BRICABRAC.FOLD-ENVIRONMENTS.MODES package")
 
 (defgeneric fold-for-key (key old new)
@@ -23,9 +24,10 @@ If bound to a list, it is assumed to be a property list and subject to
 (defun find-fold-mapping (mapping env key)
   (let ((mapping (fold-environments* mapping nil)))
     (or (resolve key mapping)
-        (and env (find-fold-mapping (resolve .fold-mapping env)
-                                    nil
-                                    key)))))
+        (and env
+             (find-fold-mapping (resolve .fold-mapping env)
+                                nil
+                                key)))))
 
 (defmethod fold-for-key ((_ (eql .fold-mapping)) old new)
   (fold-environments old new))
@@ -33,9 +35,7 @@ If bound to a list, it is assumed to be a property list and subject to
 (defgeneric generic-fold (mapping env key old new)
   (:method ((mapping list) env key old new)
     (let ((function (find-fold-mapping mapping env key)))
-      (let ((*environment* (let* ((parent *environment*)
-                                  (*environment* nil))
-                             (fold-environments% parent env))))
+      (let ((*environment* env))
         (typecase function
           (null (fold-for-key key old new))
           ((or function symbol)
@@ -68,9 +68,3 @@ If bound to a list, it is assumed to be a property list and subject to
   (fold-environments* (append (ensure-list-of-environments old)
                               (ensure-list-of-environments new))
                       mapping))
-
-;; (with-environment ((.fold-mapping '(:type (cons #:new #:old))))
-;;            (with-environment ((:type '(:a integer))
-;;                               (:type '(:b float)))
-;;              (resolve :type)))
-;; ((:B FLOAT) (:A INTEGER))
