@@ -1,13 +1,35 @@
-(defpackage #:bricabrac.fold-environments.utils
-  (:documentation "Extension interface")
+(defpackage #:bricabrac.fold-environments.environment
+  (:documentation "Environment interface")
   (:use)
   (:export
 
    ;; ENVIRONMENT
    #:augment
-   #:resolve
    #:without
+   #:resolve
 
+   ;; CURRENT ENVIRONMENT
+   #:*environment*
+
+   ;; BINDING MACRO
+   #:environment-bind
+
+   ;; LOCAL ENVIRONMENT BINDINGS
+   #:with-environment))
+
+(defpackage #:bricabrac.fold-environments.utils
+  (:documentation "Extension interface")
+  (:use)
+  (:export
+
+   ;; CODE MANIPULATION
+   #:uninterned=
+   #:transform-code
+   #:as-function
+   
+   ;; META MAPPING
+   #:find-fold-mapping
+   
    ;; HELPER
    #:ensure-list-of-environments))
 
@@ -40,17 +62,13 @@
    ;; INTERPRET CODE DIRECTLY IN *FOLD-MAPPING* (see doc)
    #:*fold-mapping-interpretation-mode*
 
-   ;; CURRENT ENVIRONMENT
-   #:*environment*
-
-   ;; BINDING MACRO
-   #:environment-bind
-
+   ;; SPECIAL KEY
+   #:.fold-mapping
+   
    ;; FOLD TWO OR MORE ENVIRONMENTS
    #:fold-environments
-   #:fold-environments*
-
-   ))
+   #:fold-environments%
+   #:fold-environments*))
 
 (defpackage #:bricabrac.fold-environments.private
   (:documentation "Other unexported symbols")
@@ -58,5 +76,6 @@
         #:bricabrac.local-keywords
         #:bricabrac.fold-environments
         #:bricabrac.fold-environments.utils
+        #:bricabrac.fold-environments.environment
         #:bricabrac.fold-environments.extend
         #:bricabrac.fold-environments.modes))

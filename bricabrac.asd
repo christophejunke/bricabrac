@@ -120,7 +120,9 @@
   :pathname "fold-environments"
   :serial t
   :components ((:file "packages")
-               (:file "main")))
+               (:file "environments")
+               (:file "main")
+               (:file "modes")))
 
 (defsystem :bricabrac/sdl2.event-loop.demo
   :depends-on (#:bricabrac #:cl-opengl)
