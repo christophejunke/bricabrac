@@ -65,6 +65,9 @@
    ;; SPECIAL KEY
    #:.fold-mapping
    
+   ;; Fold place
+   #:foldf
+
    ;; FOLD TWO OR MORE ENVIRONMENTS
    #:fold-environments
    #:fold-environments%
