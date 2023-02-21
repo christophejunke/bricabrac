@@ -60,15 +60,18 @@
 (defmethod (setf node-environment) :around (environment (node node))
   (let ((previous (slot-value node 'environment)))
     (cond
-      ((equalp previous environment)
+      ((equal previous environment)
        environment)
       (t
        (let ((result (call-next-method)))
          (prog1 result
            (setf (.cache node) nil)))))))
 
-(define-condition cache-clear () 
-  ((node :initarg :node :reader cache-clear-node)))
+(define-condition %has-node ()
+  ((node :initarg :node :reader %node)))
+
+(define-condition cache-clear (%has-node) ())
+(define-condition recomputing (%has-node) ())
 
 (defmethod (setf .cache) :around (cache (node node))
   (let ((previous (slot-value node .cache)))
@@ -102,6 +105,7 @@
   (let ((object (allocate-instance class)))
     (prog1 object
       (initialize-instance object :parent nil :environment nil :name name)      
+      (signal 'cache-clear :node object)
       (setf (node-parent object) parent)
       (setf (node-environment object) environment))))
 
@@ -122,32 +126,48 @@
                (setf (node-environment x) environment)
                ;; refresh dirty leaves
                (map () #'node-environment dirty)))
-           (%handle-dirty (c &aux (n (cache-clear-node c)))
+           (%handle-recomputing (c &aux (n (%node c)))
+             (format *debug-io* "~&;; updating node ~s~%" (node-name n)))
+           (%handle-dirty (c &aux (n (%node c)))
+             (format *debug-io* "~&;; dirty ~s~%" (node-name n))
              (unless (.children n)
                (push n dirty))))
-      (handler-bind ((cache-clear #'%handle-dirty))
+      (handler-bind ((cache-clear #'%handle-dirty)
+                     (recomputing #'%handle-recomputing))
         (cond
           ((not current)
-           (setf (find-node n) (make-node% n class parent environment)))
+           (setf (find-node n) 
+                 (make-node% n class parent environment)))
           ((eq (class-of current) class)
            (%fill current nil))
           (t
            (%fill (change-class current class) t)))))))
 
 (defun expand-define-global-node (name class parent environment)
-  `(ensure-node ',name 
-                ,(or class (and parent :inherit))
-                ',parent
-                (progn ,@environment)))
+  (flet ((entryp (u) 
+           (and (consp u)
+                (or (keywordp (first u))
+                    (local-keyword-p (first u))))))
+    `(ensure-node ',name 
+                  ,(or class (and parent :inherit))
+                  ',parent
+                  ,(loop 
+                     for e in environment
+                     for ok = (entryp e) then (and ok (entryp e))
+                     append e into entries
+                     finally
+                        (return 
+                          (if ok 
+                              `(list ,@entries)
+                              `(progn ,@environment)))))))
 
 (defun node-environment (node/name &aux (node (find-node node/name)))
   (when node/name
     (or (.cache node)
         (setf (.cache node)
-              (progn 
-                (warn "recomputing for ~s" (node-name node))
-                (fold-environments% (node-environment (node-parent node))
-                                    (slot-value node 'environment)))))))
+              (prog1 (fold-environments% (node-environment (node-parent node))
+                                         (slot-value node 'environment))
+                (signal 'recomputing :node node))))))
 
 (defmacro defnode (name (&rest options) &body environment)
   "Create or update node definitions identified by NAME.
@@ -166,7 +186,9 @@ class of node to allocate (if new) or to call CHANGE-CLASS with (if
 updating an existing node). If not provided and the node has a parent,
 the class defaults to the class of the parent.
 
-ENVIRONMENT is evaluated and must produce a property list."
+ENVIRONMENT is evaluated and must produce a property list.
+If ENVIRONMENTS contains only (K W) pairs, each pair is a list
+"
   (destructuring-bind (&key parent class)
       (if (or (null options)
               (member (first options) '(:parent :class)))
@@ -177,11 +199,3 @@ ENVIRONMENT is evaluated and must produce a property list."
 (defmethod print-object ((o node) stream)
   (print-unreadable-object (o stream :type t :identity t)
     (format stream "~s" (node-name o))))
-
-;; (defnode :a () '(.fold-mapping (:name (list* #:new #:old))
-;;                  :name "A"))
-;;
-;; (defnode :b (:a) '(:name "B"))
-;; (defnode :b.0 (:b) '(:name "zero"))
-;; (defnode :b.1 (:b) '(:name "one"))
-

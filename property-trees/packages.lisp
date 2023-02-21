@@ -1,5 +1,7 @@
 (defpackage #:bricabrac.property-trees
-  (:use :cl)
+  (:use :cl #:bricabrac.local-keywords
+        #:bricabrac.fold-environments
+        )
   (:import-from #:alexandria
                 #:ensure-list
                 ))
