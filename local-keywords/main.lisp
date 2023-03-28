@@ -13,6 +13,8 @@
 (defun local-keyword-p (symbol)
   (get symbol 'local-keyword))
 
+(deftype local-keyword () `(satisfies local-keyword-p))
+
 (defun all-local-keywords (&optional (package *package*) list)
   (let ((p (find-package package)))
     (do-symbols (s p list)

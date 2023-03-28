@@ -1,12 +1,11 @@
 (defpackage :test
   (:use :cl
+        #:bricabrac.fold-environments.extend
         #:bricabrac.fold-environments.environment
         #:bricabrac.fold-environments
         #:bricabrac.local-keywords))
 
 (in-package :test)
-
-(define-local-keyword .type)
 
 (defun flat-nest (op old new)
   (cond
@@ -15,17 +14,22 @@
     (old (list op new old))
     (t new)))
 
+;;
+
+(define-local-keyword .type)
+
+(declaim (inline vec vec-x vec-y))
+(defstruct (vec (:type (vector (real -200 200)))
+                (:constructor vec (&optional (x 0) (y x))))
+  x y)
+
+(vec 1)
+
 (defun fold-type (old new)
   (destructuring-bind (var type) new
     (augment (without old var)
              var
              (flat-nest 'and (resolve var old) type))))
-
-(with-environment (env nil) (.fold-mapping '((.type fold-type)))
-  (with-environment env ((.type '(a integer))
-                         (.type '(b float)))
-    (with-environment env ((.type '(a fixnum)))
-      (resolve 'b (resolve .type env)))))
 
 (defun norm-bindings (b)
   (flet ((norm (e)
@@ -48,7 +52,7 @@
 
 (defmacro with-lang-match (f &body clauses)
   (alexandria:with-gensyms (k %args)
-    (flet ((% (kw arity) 
+    (flet ((% (kw arity)
              (let ((code (assoc kw clauses :key #'car)))
                (when code
                  (destructuring-bind (m . e) code
@@ -96,3 +100,31 @@
 (vars
  '(let ((a 3) (b (* c c)))
    (+ a (let ((b (* b b))) b) f (let ((c 10)) c))))
+
+(with-environment (env nil) (.fold-mapping '((.type fold-type)))
+  (with-environment env ((.type '(a integer))
+                         (.type '(b float)))
+    (with-environment env ((.type '(a fixnum)))
+      (resolve 'b (resolve .type env)))))
+;;
+
+(defstruct tracker history)
+
+(defmethod generic-fold ((_ tracker) env key old new)
+  (let ((fold (generic-fold nil env key old new)))
+    (prog1 fold
+      (push (list key fold) (tracker-history _)))))
+;;
+
+(let ((*fold-mapping* (make-tracker)))
+  (with-environment (env nil) (.fold-mapping '((.type fold-type)))
+    (with-environment env ((.type '(a integer))
+                           (.type '(b float)))
+      (with-environment env ((.type '(a fixnum)))
+        (list *fold-mapping* (resolve 'b (resolve .type env)))))))
+
+;; (#S(TRACKER
+;;     :HISTORY ((.TYPE (A (AND FIXNUM INTEGER) B FLOAT))
+;;               (.TYPE (B FLOAT A INTEGER)) (.TYPE (A INTEGER))
+;;               (.FOLD-MAPPING (.TYPE FOLD-TYPE)) (.TYPE FOLD-TYPE)))
+;;  FLOAT)

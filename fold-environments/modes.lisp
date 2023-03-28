@@ -87,6 +87,9 @@ especially useful when prototyping but this calls EVAL.
         (apply #'fn/2 args)
         (apply #'fn/1 args))))
 
+(define-local-keyword <NEW>)
+(define-local-keyword <OLD>)
+
 (defun transform-code (code old new)
   (flet ((rewrite (form pair)
            (destructuring-bind (replace . search) pair
@@ -95,7 +98,9 @@ especially useful when prototyping but this calls EVAL.
             (list (cons new "new")
                   (cons old "old")
                   (cons 'resolve "get"))
-            :initial-value code)))
+            :initial-value (sublis `((<NEW> . ,new)
+                                     (<OLD> . ,old))
+                                   code))))
 
 (defun as-function (code)
   (let ((old (gensym "OLD"))
