@@ -2,7 +2,6 @@
   :depends-on ( 
                #:ALEXANDRIA
                #:BORDEAUX-THREADS
-               #:BRICABRAC/SDL2               
                #:CL-CONTAINERS
                #:CL-SHELLWORDS
                #:DRAKMA

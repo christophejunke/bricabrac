@@ -371,49 +371,49 @@
 
 ;;; gnome-terminal
 
-(defvar *dbus* nil)
+;; (defvar *dbus* nil)
 
-(defun call-with-dbus (function)
-  (if *dbus*
-      (funcall function)
-      (dbus:with-open-bus (*dbus* (dbus:session-server-addresses))
-        (funcall function))))
+;; (defun call-with-dbus (function)
+;;   (if *dbus*
+;;       (funcall function)
+;;       (dbus:with-open-bus (*dbus* (dbus:session-server-addresses))
+;;         (funcall function))))
 
-(defmacro with-dbus (&body body)
-  `(call-with-dbus
-    (lambda () ,@body)))
+;; (defmacro with-dbus (&body body)
+;;   `(call-with-dbus
+;;     (lambda () ,@body)))
 
-(defun dbus-terminal-new ()
-  (with-dbus
-    (dbus:with-introspected-object (object
-                                    *dbus*
-                                    "/org/gnome/Terminal/Factory0"
-                                    "org.gnome.Terminal")
-      (object "org.gnome.Terminal.Factory0" "CreateInstance" ()))))
+;; (defun dbus-terminal-new ()
+;;   (with-dbus
+;;     (dbus:with-introspected-object (object
+;;                                     *dbus*
+;;                                     "/org/gnome/Terminal/Factory0"
+;;                                     "org.gnome.Terminal")
+;;       (object "org.gnome.Terminal.Factory0" "CreateInstance" ()))))
 
-(defun byte-string (string)
-  (concatenate 'vector (babel:string-to-octets string) '(0)))
+;; (defun byte-string (string)
+;;   (concatenate 'vector (babel:string-to-octets string) '(0)))
 
-(defun dbus-cwd-encode ()
-  (byte-string (namestring *default-pathname-defaults*)))
+;; (defun dbus-cwd-encode ()
+;;   (byte-string (namestring *default-pathname-defaults*)))
 
-(defun dbus-terminal-exec (terminal)
-  (with-dbus
-    (dbus:with-introspected-object (object
-                                    *dbus*
-                                    terminal
-                                    "org.gnome.Terminal")
-      (object "org.gnome.Terminal.Terminal0"
-              "Exec"
-              `(("shell" ("b" nil))
-                ("cwd" ("ay" ,(dbus-cwd-encode)))
-                ("quit" ("b" nil)))
-              (vector (byte-string "/usr/bin/ncdu")
-                      (byte-string "/tmp/"))))))
+;; (defun dbus-terminal-exec (terminal)
+;;   (with-dbus
+;;     (dbus:with-introspected-object (object
+;;                                     *dbus*
+;;                                     terminal
+;;                                     "org.gnome.Terminal")
+;;       (object "org.gnome.Terminal.Terminal0"
+;;               "Exec"
+;;               `(("shell" ("b" nil))
+;;                 ("cwd" ("ay" ,(dbus-cwd-encode)))
+;;                 ("quit" ("b" nil)))
+;;               (vector (byte-string "/usr/bin/ncdu")
+;;                       (byte-string "/tmp/"))))))
 
-(defun dbus-gnome-terminal ()
-  (with-dbus
-    (dbus-terminal-exec (dbus-terminal-new))))
+;; (defun dbus-gnome-terminal ()
+;;   (with-dbus
+;;     (dbus-terminal-exec (dbus-terminal-new))))
 
 ;; (defgeneric terminal-exec (how command &key &allow-other-keys))
 ;;
