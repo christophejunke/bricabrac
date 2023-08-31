@@ -104,6 +104,8 @@
     (write-string "#!/bin/bash"))
   (:method ((_ (eql :cd-workdir)))
     (format t "cd ~s" (getf *script-mappings* :workdir)))
+  (:method ((_ (eql :send-pid)))
+    (format t "echo $(_io $$)"))
   (:method ((_ (eql :set-debug)))
     (write-line "cat $0")
     (write-string "set -x"))
@@ -112,12 +114,12 @@
   (:method ((_ (eql :define-io-function)))
     (format t "export IO_SOCKET=~s
 _io () {
-  echo \"$1\" | nc -U \"${IO_SOCKET}\"
+  echo \"$1\" | nc -U \"${IO_SOCKET}\" | head -n1
 }" (getf *script-mappings* :socket)))
   (:method ((_ (eql :trap-cleanup-socket)))
     (format t "export IO_SOCKET=~s
 _io () {
-  echo \"$1\" | nc -U \"${IO_SOCKET}\"
+  echo \"$1\" | nc -U \"${IO_SOCKET}\" | head -n1
 }
 _cleanup () {
     res=$?
@@ -134,6 +136,7 @@ trap '_cleanup' EXIT" (getf *script-mappings* :socket)))
     :TRAP-CLEANUP-SOCKET
     :SET-ERROR
     :SET-DEBUG
+    :SEND-PID
     :DELIMITER
     :CD-WORKDIR))
 

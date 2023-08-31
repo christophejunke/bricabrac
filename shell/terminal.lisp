@@ -40,22 +40,30 @@
     ((eql t) *default-pathname-defaults*)
     ((or null (eql :tmp)) (truename #P"/tmp/"))))
 
+(defun fold-directory (a b)
+  (case b
+    ((t :tmp) b)
+    (t (typecase a
+         (null (merge-pathnames b))
+         (pathname (merge-pathnames b a))
+         (t (pathname b))))))
+
 (defparameter *terminal-reducers* nil)
 
 (define-local-keyword .reducers
-  :documentation "keyword for option reducers")
+ "keyword for option reducers")
 
 (define-local-keyword .options
-  :documentation "keyword for options passed to the shell/terminal emulator")
+  "keyword for options passed to the shell/terminal emulator")
 
 (define-local-keyword .defaults
-  :documentation "keyword for defaults values")
+  "keyword for defaults values")
 
 (define-local-keyword .environment
-  :documentation "keyword for environment variables")
+  "keyword for environment variables")
 
 (define-local-keyword .screen
-  :documentation "keyword for screen arguments")
+  "keyword for screen arguments")
 
 (defmethod attribute-reducer ((attribute (eql .options)) old new)
   (append new old))
@@ -131,7 +139,7 @@
     (:log . :adb/small)
     (:alt . "XTermALT")
     (:adb . "XTermADB")
-    (:adb/small . "XTermSmallADB")))
+    (:adb/small . "SmallXTerm")))
 
 (defun class-option (v)
   (typecase v
@@ -290,9 +298,11 @@
                   "-t" ,(format nil "~a:" session)
                   ,@(back)
                   ,@(name)
+                  "env"
                   ,@(loop
                       for e in (second (option :env))
-                      collect "-e" collect e))
+                      ;; collect "-e"
+                      collect e))
                 `("new"
                   ,@(when-let ((s (option :tmux-session)))
                       `("-s" ,s "-A"))
@@ -320,8 +330,8 @@
            (nunion (nset-difference (remove-duplicates old) subtract)
                    union)))))
 
-(defun identity-or (another)
-  (lambda (v) (or v (option another))))
+(defun identity-or (another &optional (transform #'identity))
+  (lambda (v) (or v (funcall transform (option another)))))
 
 ;;; EXAMPLE
 ;;
@@ -348,6 +358,69 @@
 
 (defun option* (key &rest args)
   (apply (option key) args))
+
+(defun shorten (string &key (width 40) (ellipsis "..."))
+  (assert (>= width (length ellipsis)))
+  (if (<= (length string) width)
+      string
+      (let ((cut (- width (length ellipsis))))
+        (concatenate 'string (subseq string 0 cut) ellipsis))))
+
+(defun tmux-title-shorten (title)
+  (shorten title :width (option :tmux-max-size)))
+
+;;; gnome-terminal
+
+(defvar *dbus* nil)
+
+(defun call-with-dbus (function)
+  (if *dbus*
+      (funcall function)
+      (dbus:with-open-bus (*dbus* (dbus:session-server-addresses))
+        (funcall function))))
+
+(defmacro with-dbus (&body body)
+  `(call-with-dbus
+    (lambda () ,@body)))
+
+(defun dbus-terminal-new ()
+  (with-dbus
+    (dbus:with-introspected-object (object
+                                    *dbus*
+                                    "/org/gnome/Terminal/Factory0"
+                                    "org.gnome.Terminal")
+      (object "org.gnome.Terminal.Factory0" "CreateInstance" ()))))
+
+(defun byte-string (string)
+  (concatenate 'vector (babel:string-to-octets string) '(0)))
+
+(defun dbus-cwd-encode ()
+  (byte-string (namestring *default-pathname-defaults*)))
+
+(defun dbus-terminal-exec (terminal)
+  (with-dbus
+    (dbus:with-introspected-object (object
+                                    *dbus*
+                                    terminal
+                                    "org.gnome.Terminal")
+      (object "org.gnome.Terminal.Terminal0"
+              "Exec"
+              `(("shell" ("b" nil))
+                ("cwd" ("ay" ,(dbus-cwd-encode)))
+                ("quit" ("b" nil)))
+              (vector (byte-string "/usr/bin/ncdu")
+                      (byte-string "/tmp/"))))))
+
+(defun dbus-gnome-terminal ()
+  (with-dbus
+    (dbus-terminal-exec (dbus-terminal-new))))
+
+;; (defgeneric terminal-exec (how command &key &allow-other-keys))
+;;
+;; (defmethod terminal-exec ((_ (eql :dbus-gnome-terminal)) command)
+;;   (with-synchronous-script (script command)
+;;     (with-dbus
+;;       (dbus-terminal-exec (dbus-terminal-new) script))))
 
 ;;; -----
 
@@ -377,14 +450,20 @@
                    (:geometry . "260x20")
                    ;; default tmux-session (nil => create new)
                    (:tmux-session . nil)
+                   ;; width for shortening title
+                   (:tmux-max-size . 30)
                    ;; spawn behaviors
                    (:behavior . nil)
                    ;; default tmux-name
                    (:tmux-name . nil))
-        .reducers (:env rappend :debug fold-saturating :final fold-saturating)
+        .reducers (:env rappend
+                   :debug fold-saturating
+                   :final fold-saturating
+                   :directory fold-directory)
         :behavior identity
         :tmux-session identity
-        :tmux-name ,(identity-or :title)
+        :tmux-max-size identity
+        :tmux-name ,(identity-or :title 'tmux-title-shorten)
         :tmux-attach-to identity
         .defaults ((:reflow :tmux) ;; which program to use to reflow lines
                    (.screen "-S" "auto"))                
@@ -430,6 +509,10 @@
                 :execute ,(lambda (args)
                             (and args
                                  (list "-c" (sh-escape (list* "exec" args)))))))
+      (_gnome ()
+              (:gnome-terminal (.defaults ((:reflow . nil))
+                                :term "gnome-terminal"
+                                :execute ,(lambda (args) (break "Here ~s" args)))))
       (_X11 (:geometry ,(arg "-geometry")
              :background background-option
              .options (:background :class :iconic :reverse)
@@ -437,14 +520,14 @@
              :reverse ,(toggle "-rv")
              :iconic ,(toggle "-iconic"))
             (:xterm (:hold ,(toggle "-hold")
-                     ;; execute must be last
-                     .options (:title-arg :hold :geometry :colors)
-                     .environment ((when (eql :screen (option :reflow))
-                                     ("SHELL" . "/usr/bin/screen")))
-                     :colors ,(lambda (x) (unless x '("-cm")))
-                     :title identity
-                     :title-arg ,(arg "-title" :title)
-                     :term "xterm")
+                           ;; execute must be last
+                           .options (:title-arg :hold :geometry :colors)
+                           .environment ((when (eql :screen (option :reflow))
+                                           ("SHELL" . "/usr/bin/screen")))
+                           :colors ,(lambda (x) (unless x '("-cm")))
+                           :title identity
+                           :title-arg ,(arg "-title" :title)
+                           :term "xterm")
                     nil
                     ;; example of child terminals which forces specific
                     ;; translations for options.
@@ -541,6 +624,13 @@
             (t terminal-option))))))
 
 (defun run-program-wrapper (&rest args)
+  (when (option* :debug :run-program)
+    (warn "options: ~s" *options*)
+    (format *debug-io* 
+            "~&;; ~S~{ ~S~}~%"
+            (first args)
+            (second args))
+    (finish-output *debug-io*))
   (apply #'sb-ext:run-program args))
 
 (defun terminal-arguments% (program args)
@@ -589,6 +679,7 @@
 
 (defun terminal (&optional program &rest args)
   (declare (notinline terminal%))
+  (unless program (setf program "bash"))
   (terminal% program :args (map 'list #'princ-to-string (remove nil args))))
 
 (defvar *standard-options* '((:term :xterm)))
@@ -603,8 +694,20 @@
     (or (loop for c in candidates thereis (find c sessions :test #'string=))
         (first sessions))))
 
+(defvar *default* '("main" "0"))
+
+;; FIXME: remove-duplicates? from-end maybe?
+(defun collapse (list &key (test #'eql) (key #'identity))
+  (labels ((collapse (list result)
+             (if list
+                 (destructuring-bind (head . tail) list
+                   (collapse (delete head tail :test test :key key) (cons head result)))
+                 (nreverse result))))
+    (collapse (copy-list list) nil)))
+
 (defmacro with-tmux-session ((&rest choices) &body body)
-  (let ((best (gensym)))
-    `(let ((,best (best-tmux-session (list ,@choices))))
-       (with-terminal-options ((:tmux-attach-to ,best))
-         ,@body))))
+  `(with-terminal-options ((:tmux-attach-to 
+                            (best-tmux-session
+                             (collapse (list* ,@choices *default*)
+                                       :test #'string=))))
+     ,@body))

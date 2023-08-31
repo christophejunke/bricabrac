@@ -11,7 +11,11 @@
                #:OSICAT
                #:PIPELINE
                #:SDL2
-               #:SDL2-IMAGE)
+               #:SDL2-IMAGE
+
+               ;; added here to remember
+               #:sycamore
+               )
 
   :serial t
   :components
@@ -34,23 +38,6 @@
    (:module #:DEBUG
             :pathname "debug/"
             :components ((:file "debug")))
-
-   (:module #:ENVIRONMENTS
-            :pathname "environments/"
-            :components
-            ((:file "package")
-             (:file "hash-consing" :depends-on ("package"))
-             (:file "environments" :depends-on ("hash-consing"))
-             (:file "indexer" :depends-on ("package"))
-             (:file "property-trees" :depends-on ("environments"))))
-
-   (:module #:SHELL
-    :pathname "shell/"
-    :depends-on (#:ENVIRONMENTS)
-    :components ((:file "packages")
-                 (:file "escape")
-                 (:file "terminal")
-                 (:file "directory")))
 
    ;; (:module #:KEYMAPS
    ;;  :pathname "keymaps/"
@@ -100,6 +87,15 @@
    ;;  ((:file "pipeline")))
    ))
 
+(defsystem :bricabrac/environments
+  :pathname "environments/"
+  :components
+  ((:file "package")
+   (:file "hash-consing" :depends-on ("package"))
+   (:file "environments" :depends-on ("hash-consing"))
+   (:file "indexer" :depends-on ("package"))
+   (:file "property-trees" :depends-on ("environments"))))
+
 (defsystem :bricabrac/property-trees
   :pathname "property-trees"
   :depends-on ("alexandria"
@@ -115,6 +111,17 @@
   :components ((:file "packages")
                (:file "main")))
 
+(defsystem :bricabrac/shell
+  :pathname "shell"
+  :depends-on (:bricabrac/local-keywords
+               :bricabrac/environments)
+  :serial t
+  :components ((:file "packages")
+               (:file "escape")
+               (:file "terminal")
+               (:file "directory")))
+
+;; DEPRECATED => SEE FOLDENV
 (defsystem :bricabrac/fold-environments
   :depends-on (:bricabrac/local-keywords)
   :pathname "fold-environments"
