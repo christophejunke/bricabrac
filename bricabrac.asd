@@ -10,8 +10,9 @@
                #:OPTIMA
                #:OSICAT
                #:PIPELINE
-               #:SDL2
-               #:SDL2-IMAGE)
+               
+               #:BRICABRAC/SDL2               
+               )
 
   :serial t
   :components
@@ -63,37 +64,6 @@
             :components
             ((:file "internal-time")))
 
-   (:module #:SDL2
-            :pathname "sdl2/"
-            :components
-
-            ((:module #:EVENT-LOOP
-                      :pathname "event-loop/"
-                      :components
-                      ((:module #:SOURCE
-                                :pathname "source/"
-                                :serial t
-                                :components ((:file "package")
-                                             (:file "macros")
-                                             (:file "ffi")
-                                             (:file "events")
-                                             (:file "definitions")))
-                       (:module #:TESTS
-                                :pathname "tests/"
-                                :components ((:file "tests")))))
-
-             (:module #:SPRITES
-                      :pathname "sprites/"
-                      :serial t
-                      :components ((:file "packages")
-                                   (:file "transform")
-                                   (:file "spritesheets")
-                                   (:file "textures")
-
-                                   ;; move to test system?
-                                   ;; (:file "test")
-                                   ))))
-
    ;; (:module #:OPERATING-SYSTEM
    ;;  :pathname "os/"
    ;;  :components
@@ -123,6 +93,39 @@
                (:file "environment")
                (:file "modes")
                (:file "main")))
+
+(defsystem :bricabrac/sdl2
+  :depends-on (#:SDL2 #:SDL2-IMAGE)
+  :components 
+  ((:module #:SDL2
+            :pathname "sdl2/"
+            :components
+            ((:module #:EVENT-LOOP
+                      :pathname "event-loop/"
+                      :components
+                      ((:module #:SOURCE
+                                :pathname "source/"
+                                :serial t
+                                :components ((:file "package")
+                                             (:file "macros")
+                                             (:file "ffi")
+                                             (:file "events")
+                                             (:file "definitions")))
+                       (:module #:TESTS
+                                :pathname "tests/"
+                                :components ((:file "tests")))))
+
+             (:module #:SPRITES
+                      :pathname "sprites/"
+                      :serial t
+                      :components ((:file "packages")
+                                   (:file "transform")
+                                   (:file "spritesheets")
+                                   (:file "textures")
+
+                                   ;; move to test system?
+                                   ;; (:file "test")
+                                   ))))))
 
 (defsystem :bricabrac/sdl2.event-loop.demo
   :depends-on (#:bricabrac #:cl-opengl)
