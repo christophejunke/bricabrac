@@ -199,3 +199,7 @@ If ENVIRONMENTS contains only (K W) pairs, each pair is a list
 (defmethod print-object ((o node) stream)
   (print-unreadable-object (o stream :type t :identity t)
     (format stream "~s" (node-name o))))
+
+(defmacro within-node (node &body body)
+  `(let ((*environment* (node-environment ,node)))
+     ,@body))

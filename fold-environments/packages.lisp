@@ -33,9 +33,35 @@
    ;; HELPER
    #:ensure-list-of-environments))
 
-(defpackage #:bricabrac.fold-environments.modes
-  (:documentation "Predefined interpretation modes")
+(defpackage #:bricabrac.fold-environments
+  (:documentation "User interface")
   (:use)
+  (:export
+
+   #:<OLD>
+   #:<NEW>
+
+   ;; CURRENT MAPPING OF FOLD FUNCTIONS
+   #:*fold-mapping*
+   
+   ;; INTERPRET CODE DIRECTLY IN *FOLD-MAPPING* (see doc)
+   #:*fold-mapping-interpretation-mode*
+
+   ;; SPECIAL KEY
+   #:.fold-mapping
+   
+   ;; Fold place
+   #:foldf
+   #:foldf*
+
+   ;; FOLD TWO OR MORE ENVIRONMENTS
+   #:fold-environments
+   #:fold-environments%
+   #:fold-environments*))
+
+(defpackage #:bricabrac.fold-environments.modes
+  (:use :cl #:bricabrac.fold-environments)
+  (:documentation "Predefined interpretation modes")
   (:export
    #:.simple
    #:.simple/eval
@@ -50,28 +76,6 @@
    #:interpret-fold-function
    #:fold-for-key
    #:generic-fold))
-
-(defpackage #:bricabrac.fold-environments
-  (:documentation "User interface")
-  (:use)
-  (:export
-
-   ;; CURRENT MAPPING OF FOLD FUNCTIONS
-   #:*fold-mapping*
-   
-   ;; INTERPRET CODE DIRECTLY IN *FOLD-MAPPING* (see doc)
-   #:*fold-mapping-interpretation-mode*
-
-   ;; SPECIAL KEY
-   #:.fold-mapping
-   
-   ;; Fold place
-   #:foldf
-
-   ;; FOLD TWO OR MORE ENVIRONMENTS
-   #:fold-environments
-   #:fold-environments%
-   #:fold-environments*))
 
 (defpackage #:bricabrac.fold-environments.private
   (:documentation "Other unexported symbols")

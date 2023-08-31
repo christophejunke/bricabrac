@@ -1,6 +1,8 @@
 (defsystem #:bricabrac
-  :depends-on (#:ALEXANDRIA
+  :depends-on ( 
+               #:ALEXANDRIA
                #:BORDEAUX-THREADS
+               #:BRICABRAC/SDL2               
                #:CL-CONTAINERS
                #:CL-SHELLWORDS
                #:DRAKMA
@@ -10,8 +12,6 @@
                #:OPTIMA
                #:OSICAT
                #:PIPELINE
-               
-               #:BRICABRAC/SDL2               
                )
 
   :serial t
@@ -36,23 +36,6 @@
             :pathname "debug/"
             :components ((:file "debug")))
 
-   (:module #:ENVIRONMENTS
-            :pathname "environments/"
-            :components
-            ((:file "package")
-             (:file "hash-consing" :depends-on ("package"))
-             (:file "environments" :depends-on ("hash-consing"))
-             (:file "indexer" :depends-on ("package"))
-             (:file "property-trees" :depends-on ("environments"))))
-
-   (:module #:SHELL
-    :pathname "shell/"
-    :depends-on (#:ENVIRONMENTS)
-    :components ((:file "packages")
-                 (:file "escape")
-                 (:file "terminal")
-                 (:file "directory")))
-
    ;; (:module #:KEYMAPS
    ;;  :pathname "keymaps/"
    ;;  :components
@@ -70,6 +53,15 @@
    ;;  ((:file "pipeline")))
    ))
 
+(defsystem :bricabrac/environments
+  :pathname "environments/"
+  :components
+  ((:file "package")
+   (:file "hash-consing" :depends-on ("package"))
+   (:file "environments" :depends-on ("hash-consing"))
+   (:file "indexer" :depends-on ("package"))
+   (:file "property-trees" :depends-on ("environments"))))
+
 (defsystem :bricabrac/property-trees
   :pathname "property-trees"
   :depends-on ("alexandria"
@@ -85,6 +77,17 @@
   :components ((:file "packages")
                (:file "main")))
 
+(defsystem :bricabrac/shell
+  :pathname "shell"
+  :depends-on (:bricabrac/local-keywords
+               :bricabrac/environments)
+  :serial t
+  :components ((:file "packages")
+               (:file "escape")
+               (:file "terminal")
+               (:file "directory")))
+
+;; DEPRECATED => SEE FOLDENV
 (defsystem :bricabrac/fold-environments
   :depends-on (:bricabrac/local-keywords)
   :pathname "fold-environments"

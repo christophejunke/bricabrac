@@ -71,3 +71,6 @@ If bound to a list, it is assumed to be a property list and subject to
 
 (defmacro foldf (place &rest env)
   `(setf ,place (fold-environments ,place (list ,@env))))
+
+(defmacro foldf* (&rest env)
+  `(foldf *environment* ,@env))

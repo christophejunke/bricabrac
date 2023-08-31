@@ -1,7 +1,12 @@
 
 (defpackage :bricabrac.shell
-  (:use :alexandria :cl #:bricabrac.environments
-        #:bricabrac.utils #:pipeline)
+  (:use #:cl
+        #:alexandria
+        #:bricabrac.environments
+        #:bricabrac.local-keywords
+        #:pipeline)
+
+  (:import-from #:foldenv)
   (:export #:terminal
            #:terminal%
            #:run-program-wrapper
