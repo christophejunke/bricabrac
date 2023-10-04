@@ -452,8 +452,10 @@
                    (:tmux-session . nil)
                    ;; width for shortening title
                    (:tmux-max-size . 30)
-                   ;; spawn behaviors
+                   ;; spawon behaviors
                    (:behavior . nil)
+                   ;; redirect out/err for scripts
+                   (:redirect . t)
                    ;; default tmux-name
                    (:tmux-name . nil))
         .reducers (:env rappend
@@ -461,6 +463,7 @@
                    :final fold-saturating
                    :directory fold-directory)
         :behavior identity
+        :redirect identity
         :tmux-session identity
         :tmux-max-size identity
         :tmux-name ,(identity-or :title 'tmux-title-shorten)
@@ -501,6 +504,7 @@
                :wait ,(lambda (v) (if v t :no-wait))
 
                :background identity
+               :redirect identity
 	       :hold identity
 	       :title identity
 	       :options (:no-display :background)

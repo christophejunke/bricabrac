@@ -3,6 +3,8 @@
 
 (in-package :enum.impl)
 
+
+
 (defclass literal ()
   ((enum :accessor enum :initarg :enum)
    (name :accessor name :initarg :name)
@@ -24,9 +26,3 @@
    (constructor :accessor constructor
                 :initarg :constructor
                 :initform #'make-literal)))
-
-(let ((e (allocate-instance (find-class 'enum))))
-  (initialize-instance e :name 'test)
-  (let ((a (make-literal e :a 0))
-        (b (make-literal e :b 1)))
-    (initialize-instance e :literals (vector a b))))
