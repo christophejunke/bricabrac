@@ -12,6 +12,19 @@
    (hash :initform (make-hash-table :test #'equalp)
          :reader property-tree-hash)))
 
+(defmacro do-property-leaves (((path &rest lambda-list)
+                               tree &key result reducers) &body body)
+  (with-gensyms (env)
+    `(block nil
+       (map-property-leaves ,tree (lambda (,path &rest ,env)
+                                    ,@(if lambda-list
+                                          `((destructuring-bind ,lambda-list ,env
+                                              ,@body))
+                                          `((declare (ignore ,env))
+                                            ,@body)))
+                            :reducers (or ,reducers *current-reducers*))
+       (return ,result))))
+
 (defun property-tree (tree)
   (let ((o (make-instance 'property-tree :root tree)))
     (prog1 o
@@ -31,19 +44,6 @@
 
 (defun pt-get (pt path)
   (gethash path (property-tree-hash (ensure-pt pt))))
-
-(defmacro do-property-leaves (((path &rest lambda-list)
-                               tree &key result reducers) &body body)
-  (with-gensyms (env)
-    `(block nil
-       (map-property-leaves ,tree (lambda (,path &rest ,env)
-                                    ,@(if lambda-list
-                                          `((destructuring-bind ,lambda-list ,env
-                                              ,@body))
-                                          `((declare (ignore ,env))
-                                            ,@body)))
-                            :reducers (or ,reducers *current-reducers*))
-       (return ,result))))
 
 (defgeneric walk-meta-node-for-kind
     (kind &key path arguments children environment recurse))

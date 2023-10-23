@@ -79,7 +79,8 @@
 (defsystem :bricabrac/shell
   :pathname "shell"
   :depends-on (:bricabrac/local-keywords
-               :bricabrac/environments)
+               :bricabrac/environments
+               :foldenv)
   :serial t
   :components ((:file "packages")
                (:file "escape")
