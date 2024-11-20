@@ -28,6 +28,7 @@
            #:tmux-sessions
            #:best-tmux-session
            #:with-tmux-session
+           #:find-tmux-session
 
            #:with-terminal-options
            #:with-standard-terminal-options
@@ -52,6 +53,5 @@
            #:sh-escape))
 
 (defpackage :bricabrac.task
-  (:use :alexandria :cl #:bricabrac.environments
-        #:bricabrac.utils))
+  (:use :alexandria :cl #:bricabrac.environments))
 

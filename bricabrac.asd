@@ -80,7 +80,12 @@
   :pathname "shell"
   :depends-on (:bricabrac/local-keywords
                :bricabrac/environments
-               :foldenv)
+               :foldenv
+               :pipeline
+               :cl-shellwords
+               :optima
+               :cl-containers
+               :iolib)
   :serial t
   :components ((:file "packages")
                (:file "escape")

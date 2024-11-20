@@ -14,7 +14,7 @@
                 collect (char-upcase char))
              'string)))
 
-(defvar *tmpdir-name* nil)
+(defvar *tmpdir-name* "bricabrac")
 
 (defun tmpdir (&optional (name *tmpdir-name*))
   (truename
@@ -103,7 +103,9 @@
   (:method ((_ (eql :shebang)))
     (write-string "#!/bin/bash"))
   (:method ((_ (eql :cd-workdir)))
-    (format t "cd ~s" (getf *script-mappings* :workdir)))
+    (let ((workdir (getf *script-mappings* :workdir)))
+      (assert workdir)
+      (format t "cd ~s" workdir)))
   (:method ((_ (eql :send-pid)))
     (format t "echo $(_io $$)"))
   (:method ((_ (eql :set-debug)))
@@ -171,18 +173,22 @@ trap '_cleanup' EXIT" (getf *script-mappings* :socket)))
 (defun %current-path ()
   (osicat:native-namestring *default-pathname-defaults*))
 
+(defvar *warn* nil)
+
 (defun call-within-temporary-directory (fn &key prefix)
   (let ((dir (tmpdir (or prefix *tmpdir-name*))))
     (unwind-protect (let ((*default-pathname-defaults* dir))
-                      (with-terminal-options ((:wait t) ((:hold :default) nil))
+                      (with-terminal-options (((:hold :default) nil))
                         (funcall fn)))
-      (warn "Deleting ~a: ~:[error~;done~]"
-            dir
-            (osicat:delete-directory-and-files dir)))))
+      (let ((result (osicat:delete-directory-and-files
+                     dir :if-does-not-exist :ignore)))
+        (when *warn*
+          (warn "Delete ~a: ~:[error~;done~]" dir result))))))
 
-(defmacro within-temporary-directory ((&key prefix current) &body body)
-  (flet ((body () `(call-within-temporary-directory (lambda () ,@body)
-                                                    :prefix ,prefix)))
+(defmacro within-temporary-directory ((&key prefix current (warn t)) &body body)
+  (flet ((body () `(call-within-temporary-directory
+                    (lambda () (let ((*warn* ,warn)) ,@body))
+                    :prefix ,prefix)))
     (if current
         `(let ((,current (%current-path)))
            ,(body))

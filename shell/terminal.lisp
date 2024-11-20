@@ -110,6 +110,13 @@
                    (pending (error "circular search"))
                    (:inherit (osicat-posix:getenv k))
                    (t (optima:match v
+                        ((list* :push values)
+                         (let ((existing (osicat-posix:getenv k)))
+                           (setf (gethash k env)
+                                 (format nil
+                                         "~{~a~^:~}~@[:~a~]"
+                                         values
+                                         existing))))
                         ((list '= other)
                          (setf (gethash k env) 'pending)
                          (setf (gethash k env)
@@ -155,6 +162,8 @@
 
 (defparameter *palette*
   '((:red . (x11 (or "dark red" "brick")))
+    (:white . (x11 (/ "^snow$")))
+    (:black . (x11 (/ "^gray10$")))
     (:blue . (x11
               (and "blue"
                (not (/ "^blue$")
@@ -269,6 +278,10 @@
   (when-let (candidates (query-color v))
     (list "-bg" (random-elt candidates))))
 
+(defun foreground-option (v)
+  (when-let (candidates (query-color v))
+    (list "-fg" (random-elt candidates))))
+
 (defun no (&rest args)
   (declare (ignore args))
   nil)
@@ -306,7 +319,12 @@
                 `("new"
                   ,@(when-let ((s (option :tmux-session)))
                       `("-s" ,s "-A"))
-                  ,@(name)))))
+                  ,@(name)
+                  "env"
+                  ,@(loop
+                      for e in (second (option :env))
+                      ;; collect "-e"
+                      collect e)))))
           (:screen (% "/usr/bin/screen" (option .screen)))
           (t (warn "unknown reflow ~a (exec=~a)" type exec)))))))
 
@@ -447,7 +465,7 @@
                    ;; should we wait until the terminal closes?
                    (:wait . nil)
                    ;; default geometry
-                   (:geometry . "260x20")
+                   (:geometry . "230x20")
                    ;; default tmux-session (nil => create new)
                    (:tmux-session . nil)
                    ;; width for shortening title
@@ -519,7 +537,8 @@
                                 :execute ,(lambda (args) (break "Here ~s" args)))))
       (_X11 (:geometry ,(arg "-geometry")
              :background background-option
-             .options (:background :class :iconic :reverse)
+             :foreground foreground-option
+             .options (:background :foreground :class :iconic :reverse)
              :class class-option
              :reverse ,(toggle "-rv")
              :iconic ,(toggle "-iconic"))
@@ -582,6 +601,8 @@
 			     "Modifier keyword should be in second position"
 			     "Expected :DEFAULT or :FINAL in second position")))
                (let ((code `((push (cons ,x ,y) ,env))))
+                 (when (eq x :wait)
+                   (setf code `(,@code (break "PUSH :WAIT" ,y))))
                  (when (and wp up)
                    (warn "Both :WHEN and :UNLESS, :WHEN evaluated first"))
                  (when up (setf code `((unless ,u ,@code))))
@@ -649,7 +670,7 @@
               (list* :directory directory
                      :search t
                      :status-hook (option :status-hook)
-                     :wait (option :wait) 
+                     :wait (option :wait)
                      :output (option :output)
                      :input (option :input)
                      :error (option :error)
@@ -689,9 +710,10 @@
 (defvar *standard-options* '((:term :xterm)))
 
 (defun tmux-sessions ()
-  (with-pipeline (:channel t)
-    (program "tmux" "list-sessions" "-F" "#{session_name}")
-    #'signal-each-line))
+  (pipeline:results
+   (with-pipeline (:channel t)
+     (program "tmux" "list-sessions" "-F" "#{session_name}")
+     #'signal-each-line)))
 
 (defun best-tmux-session (candidates)
   (let ((sessions (tmux-sessions)))
@@ -708,6 +730,9 @@
                    (collapse (delete head tail :test test :key key) (cons head result)))
                  (nreverse result))))
     (collapse (copy-list list) nil)))
+
+(defun find-tmux-session ()
+  (best-tmux-session (collapse *default* :test #'string=)))
 
 (defmacro with-tmux-session ((&rest choices) &body body)
   `(with-terminal-options ((:tmux-attach-to 
