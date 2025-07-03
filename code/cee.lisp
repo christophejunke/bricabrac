@@ -48,6 +48,7 @@
      (cons :forced "~:[~;static ~]~@[~a ~]~a(~@<~{~a~^, ~@:_~}~:>)")
      (cons :filled "~:[~;static ~]~@[~a ~]~a(~@<~{~a~^, ~:_~}~:>)")
      (cons :linear "~:[~;static ~]~@[~a ~]~a(~@<~{~a~^, ~_~}~:>)")
+     (cons :kr "~@<~4I~:[~;static ~]~@[~a ~]~a(~@:_~{~a~^, ~_~}~:>~@:_)")
      (cons :linear/linear
            "~:[~;static ~]~@[~a ~]~_~a(~@<~{~a~^, ~_~}~:>)")
      (cons :split-test
@@ -106,7 +107,12 @@
     `(with-logical-block
        (with-indent (,indent)
          (format t "switch (~a) {" ,test)
-         ,@clauses)
+         (nl)
+         (macrolet ((c/case (&rest args)
+                      (list 'progn
+                            (list* 'c/case* args)
+                            (list 'nl))))
+           ,@clauses))
        (nl)
        (princ "}"))))
 
@@ -124,8 +130,13 @@
   (princ string)
   (nl))
 
-(defmacro c/case ((test &key (blockp t) (breakp t)) &body body)
-  (let ((body (if breakp `(,@body (nl) (princ "break;")) body)))
+(defmacro c/case* ((test &key (blockp t) (breakp t)) &body body)
+  (let ((body (if breakp
+                  `(,@(and body (append body '((nl))))
+                    (princ "break;"))
+                  `(,@(and body (append body '((nl))))
+                    (princ "/* fallthrough */"))
+                  )))
     `(with-logical-block 
        ,(if (eq test :default)
             `(princ "default:")
@@ -243,7 +254,7 @@
       (fresh-line)
       (c/function ("maybe_do_something"
                    :ret "int"
-                   :format :linear
+                   :format :kr
                    :parameters '("int *a"
                                  "int *b"
                                  "char **c"

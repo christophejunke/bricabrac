@@ -496,7 +496,12 @@
         :env run-program/env-option
         .environment ((:inherit
                        "XDG_RUNTIME_DIR" ; necessary e.g. for alsa
-                       "LANG" "SSH_AUTH_SOCK" "DISPLAY" "HOME" "USER" "PATH")))
+                       "XAUTHORITY" "DISPLAY"
+                       "LANG"
+                       "SSH_AUTH_SOCK"
+                       "HOME"
+                       "USER"
+                       "PATH")))
       (:debug (:term nil))
       (:tmux (:term "tmux"
                :execute ,(lambda (args)
