@@ -103,7 +103,7 @@
                (:file "main")))
 
 (defsystem :bricabrac/sdl2
-  :depends-on (#:SDL2 #:SDL2-IMAGE)
+  :depends-on (#:SDL2 #:SDL2-IMAGE #:bricabrac/environments)
   :components 
   ((:module #:SDL2
             :pathname "sdl2/"
